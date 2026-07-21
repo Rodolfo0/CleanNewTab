@@ -6,7 +6,9 @@ const suggestionHosts = new Set([
   "suggestqueries.google.com",
 ]);
 
-globalThis.browser.runtime.onMessage.addListener((message) => {
+const extensionApi = globalThis.browser ?? globalThis.chrome;
+
+extensionApi.runtime.onMessage.addListener((message) => {
   if (message?.type !== "search-suggestions" || typeof message.url !== "string") {
     return undefined;
   }

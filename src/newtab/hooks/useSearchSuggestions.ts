@@ -5,23 +5,40 @@ const SEARCH_HISTORY_KEY = "clean-new-tab:search-history:v1";
 const MAX_SUGGESTIONS = 8;
 
 type BrowserRuntime = {
-  sendMessage: (message: unknown) => Promise<unknown>;
+  lastError?: { message?: string };
+  sendMessage: (
+    message: unknown,
+    callback?: (response: unknown) => void,
+  ) => Promise<unknown> | void;
 };
 
 function requestRemoteSuggestions(url: string) {
-  const browserApi = (
+  const extensionApi = (
     globalThis as typeof globalThis & {
       browser?: { runtime?: BrowserRuntime };
+      chrome?: { runtime?: BrowserRuntime };
     }
-  ).browser;
+  );
+  const browserRuntime = extensionApi.browser?.runtime;
+  const runtime = browserRuntime ?? extensionApi.chrome?.runtime;
 
-  if (!browserApi?.runtime?.sendMessage) {
+  if (!runtime?.sendMessage) {
     return Promise.reject(new Error("Runtime de extension no disponible."));
   }
 
-  return browserApi.runtime.sendMessage({
-    type: "search-suggestions",
-    url,
+  const message = { type: "search-suggestions", url };
+  if (browserRuntime) {
+    return Promise.resolve(browserRuntime.sendMessage(message));
+  }
+
+  return new Promise<unknown>((resolve, reject) => {
+    runtime.sendMessage(message, (response) => {
+      if (runtime.lastError) {
+        reject(new Error(runtime.lastError.message));
+      } else {
+        resolve(response);
+      }
+    });
   });
 }
 

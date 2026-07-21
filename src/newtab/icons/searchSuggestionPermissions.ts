@@ -9,7 +9,10 @@ const suggestionOrigins: Partial<Record<SearchEngineId, string>> = {
 };
 
 type BrowserPermissions = {
-  request: (permissions: { origins: string[] }) => Promise<boolean>;
+  request: (
+    permissions: { origins: string[] },
+    callback?: (granted: boolean) => void,
+  ) => Promise<boolean> | void;
 };
 
 export async function requestSearchSuggestionPermission(
@@ -20,18 +23,33 @@ export async function requestSearchSuggestionPermission(
     return false;
   }
 
-  const browserApi = (
+  const extensionApi = (
     globalThis as typeof globalThis & {
       browser?: { permissions?: BrowserPermissions };
+      chrome?: { permissions?: BrowserPermissions };
     }
-  ).browser;
+  );
+  const browserPermissions = extensionApi.browser?.permissions;
+  const permissions = browserPermissions ?? extensionApi.chrome?.permissions;
 
-  if (!browserApi?.permissions) {
+  if (!permissions) {
     return false;
   }
 
   try {
-    return browserApi.permissions.request({ origins: [origin] });
+    if (browserPermissions) {
+      return await Promise.resolve(
+        browserPermissions.request({ origins: [origin] }),
+      );
+    }
+
+    return await new Promise<boolean>((resolve, reject) => {
+      try {
+        permissions.request({ origins: [origin] }, resolve);
+      } catch (error) {
+        reject(error);
+      }
+    });
   } catch {
     return false;
   }

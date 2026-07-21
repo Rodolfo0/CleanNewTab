@@ -12,7 +12,7 @@
     "https://ac.ecosia.org/*"
   ],
   "background": {
-    "scripts": ["background.js"]
+    "service_worker": "background.js"
   },
   "chrome_url_overrides": {
     "newtab": "index.html"
