@@ -1,0 +1,184 @@
+@import "tailwindcss";
+
+:root {
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  --ui-bg: #f7f8fa;
+  --ui-surface: #ffffff;
+  --ui-surface-muted: #f9fafb;
+  --ui-surface-active: #f2f4f7;
+  --ui-border: #d0d5dd;
+  --ui-border-subtle: #eaecf0;
+  --ui-text: #1d2939;
+  --ui-text-strong: #171717;
+  --ui-text-muted: #667085;
+  --ui-text-faint: #98a2b3;
+}
+
+:root[data-mantine-color-scheme="dark"] {
+  color-scheme: dark;
+  --ui-bg: #0e1217;
+  --ui-surface: #1c1f26;
+  --ui-surface-muted: #20242c;
+  --ui-surface-active: #292e38;
+  --ui-border: #3a404b;
+  --ui-border-subtle: #2d323b;
+  --ui-text: #f5f7fa;
+  --ui-text-strong: #ffffff;
+  --ui-text-muted: #a8b3cf;
+  --ui-text-faint: #7d879d;
+}
+
+:root[data-component-theme] {
+  --ui-bg: color-mix(in srgb, var(--ui-surface) 82%, var(--ui-text) 18%);
+  --ui-surface-active: color-mix(in srgb, var(--ui-accent) 14%, var(--ui-surface));
+  --ui-border-subtle: color-mix(in srgb, var(--ui-border) 58%, transparent);
+  --ui-text-muted: color-mix(in srgb, var(--ui-text) 68%, transparent);
+  --ui-text-faint: color-mix(in srgb, var(--ui-text) 48%, transparent);
+  --mantine-color-body: var(--ui-bg);
+  --mantine-color-text: var(--ui-text);
+  --mantine-color-dimmed: var(--ui-text-muted);
+  --mantine-color-default: var(--ui-surface);
+  --mantine-color-default-hover: var(--ui-surface-muted);
+  --mantine-color-default-border: var(--ui-border);
+}
+
+html,
+body {
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--ui-bg);
+  color: var(--ui-text);
+  transition: background-color 160ms ease, color 160ms ease;
+}
+
+#root {
+  min-height: 100vh;
+  width: 100vw;
+}
+
+:root[data-component-theme] [class~="bg-white"],
+:root[data-component-theme] [class~="bg-white/94"] {
+  background-color: var(--ui-surface) !important;
+  background-image: var(--ui-surface-image) !important;
+}
+
+:root[data-component-theme] [class~="bg-[#f7f8fa]"],
+:root[data-component-theme] [class~="bg-[#f1f3f5]"] {
+  background-color: var(--ui-bg) !important;
+}
+
+:root[data-component-theme] [class~="bg-[#f9fafb]"] {
+  background-color: var(--ui-surface-muted) !important;
+}
+
+:root[data-component-theme] [class~="bg-[#f2f4f7]"] {
+  background-color: var(--ui-surface-active) !important;
+}
+
+:root[data-component-theme] [class~="border-[#d0d5dd]"],
+:root[data-component-theme] [class~="border-[#cfd4dc]"] {
+  border-color: var(--ui-border) !important;
+}
+
+:root[data-component-theme] [class~="border-[#eaecf0]"],
+:root[data-component-theme] [class~="border-[#dee2e6]"] {
+  border-color: var(--ui-border-subtle) !important;
+}
+
+:root[data-component-theme] [class~="text-[#171717]"],
+:root[data-component-theme] [class~="text-[#1d2939]"],
+:root[data-component-theme] [class~="text-[#344054]"],
+:root[data-component-theme] [class~="text-[#475467]"] {
+  color: var(--ui-text) !important;
+}
+
+:root[data-component-theme] [class~="text-[#667085]"] {
+  color: var(--ui-text-muted) !important;
+}
+
+:root[data-component-theme] [class~="text-[#98a2b3]"] {
+  color: var(--ui-text-faint) !important;
+}
+
+:root[data-component-theme] [class~="hover:bg-[#f9fafb]"]:hover {
+  background-color: var(--ui-surface-muted) !important;
+}
+
+:root[data-component-theme] [class~="bg-[#171717]"],
+:root[data-component-theme] [class~="bg-[#228be6]"],
+:root[data-component-theme] [class~="bg-[#12b886]"] {
+  background-color: var(--ui-accent) !important;
+  color: var(--ui-accent-text) !important;
+}
+
+:root[data-component-theme] [class~="outline-[#228be6]"] {
+  outline-color: var(--ui-accent) !important;
+}
+
+:root[data-component-theme] :is(
+  .mantine-Menu-dropdown,
+  .mantine-Modal-content,
+  .mantine-Paper-root,
+  .mantine-Popover-dropdown
+) {
+  background-color: var(--ui-surface);
+  background-image: var(--ui-surface-image);
+  border-color: var(--ui-border);
+  color: var(--ui-text);
+}
+
+:root[data-component-theme] :is(
+  .mantine-Input-input,
+  .mantine-Select-input
+) {
+  background-color: var(--ui-surface-muted);
+  border-color: var(--ui-border);
+  color: var(--ui-text);
+}
+
+:root[data-component-theme] :is(
+  .mantine-Input-input,
+  .mantine-Select-input
+)::placeholder {
+  color: var(--ui-text-faint);
+}
+
+:root[data-component-theme] :is(
+  .mantine-ActionIcon-root,
+  .mantine-Button-root
+)[data-variant="filled"]:not([data-color="red"]) {
+  background-color: var(--ui-accent);
+  color: var(--ui-accent-text);
+}
+
+:root[data-component-theme] .mantine-Tooltip-tooltip {
+  background-color: var(--ui-accent);
+  color: var(--ui-accent-text);
+}
+
+@keyframes wallpaper-fade-in {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+.wallpaper-fade-in {
+  animation: wallpaper-fade-in 420ms ease-out both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wallpaper-fade-in {
+    animation-duration: 1ms;
+  }
+}
