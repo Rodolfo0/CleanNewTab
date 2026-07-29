@@ -2,6 +2,8 @@
 
 Extensión de navegador construida con React, Vite, Mantine y Tailwind. Reemplaza la página de nueva pestaña con una pantalla limpia.
 
+[Política de privacidad](./PRIVACY.md)
+
 ## Scripts
 
 ```bash

@@ -55,6 +55,7 @@ execFileSync(
     "vite.config.js",
     "eslint.config.js",
     "README.md",
+    "PRIVACY.md",
   ],
   { cwd: root },
 );
