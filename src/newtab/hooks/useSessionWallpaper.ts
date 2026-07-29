@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import animeWallpaper from "../../assets/Anime-Wallpaper-4K-HD.jpg";
+
 import freeDownloadWallpaper from "../../assets/Free-download-Wallpaper-4K.jpg";
 import pictureWallpaper from "../../assets/Free-download-Wallpaper-Picture-4K.jpg";
 import wallpaper4k from "../../assets/Wallpaper-4K-Free-Download.jpg";
@@ -69,14 +69,18 @@ type InitialWallpaperState = {
 };
 
 const builtInWallpapers: Wallpaper[] = [
-  { id: "anime", isCustom: false, name: "Anime", source: animeWallpaper },
   {
     id: "landscape-blue",
     isCustom: false,
     name: "Paisaje azul",
     source: freeDownloadWallpaper,
   },
-  { id: "landscape-dark", isCustom: false, name: "Paisaje", source: wallpaper4k },
+  {
+    id: "landscape-dark",
+    isCustom: false,
+    name: "Paisaje",
+    source: wallpaper4k,
+  },
   {
     id: "landscape-light",
     isCustom: false,
@@ -86,11 +90,16 @@ const builtInWallpapers: Wallpaper[] = [
 ];
 
 function canUseLocalStorage() {
-  return typeof window !== "undefined" && typeof window.localStorage !== "undefined";
+  return (
+    typeof window !== "undefined" && typeof window.localStorage !== "undefined"
+  );
 }
 
 function createId() {
-  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+  if (
+    typeof crypto !== "undefined" &&
+    typeof crypto.randomUUID === "function"
+  ) {
     return crypto.randomUUID();
   }
 
@@ -105,17 +114,16 @@ function defaultSettings(): WallpaperSettings {
   };
 }
 
-function isValidCustomWallpaper(value: unknown): value is CustomWallpaper | Wallpaper {
+function isValidCustomWallpaper(
+  value: unknown,
+): value is CustomWallpaper | Wallpaper {
   if (!value || typeof value !== "object") {
     return false;
   }
 
   const wallpaper = value as Record<string, unknown>;
 
-  return (
-    typeof wallpaper.id === "string" &&
-    typeof wallpaper.name === "string"
-  );
+  return typeof wallpaper.id === "string" && typeof wallpaper.name === "string";
 }
 
 function isValidAverageColor(value: unknown): value is string {
@@ -159,7 +167,11 @@ async function getAverageImageColor(blob: Blob) {
   }
 
   return `#${[red, green, blue]
-    .map((channel) => Math.round(channel / alphaTotal).toString(16).padStart(2, "0"))
+    .map((channel) =>
+      Math.round(channel / alphaTotal)
+        .toString(16)
+        .padStart(2, "0"),
+    )
     .join("")}`;
 }
 
@@ -180,14 +192,16 @@ function loadInitialState(): InitialWallpaperState {
     const settings = stored as Record<string, unknown>;
     const legacySources: Record<string, string> = {};
     const customWallpapers = Array.isArray(settings.customWallpapers)
-      ? settings.customWallpapers.filter(isValidCustomWallpaper).map((wallpaper) => ({
-          averageColor: isValidAverageColor(wallpaper.averageColor)
-            ? wallpaper.averageColor
-            : undefined,
-          id: wallpaper.id,
-          isCustom: true as const,
-          name: wallpaper.name,
-        }))
+      ? settings.customWallpapers
+          .filter(isValidCustomWallpaper)
+          .map((wallpaper) => ({
+            averageColor: isValidAverageColor(wallpaper.averageColor)
+              ? wallpaper.averageColor
+              : undefined,
+            id: wallpaper.id,
+            isCustom: true as const,
+            name: wallpaper.name,
+          }))
       : [];
 
     if (Array.isArray(settings.customWallpapers)) {
@@ -238,7 +252,10 @@ function saveSettings(settings: WallpaperSettings) {
   }
 
   try {
-    window.localStorage.setItem(WALLPAPER_STORAGE_KEY, JSON.stringify(settings));
+    window.localStorage.setItem(
+      WALLPAPER_STORAGE_KEY,
+      JSON.stringify(settings),
+    );
     return true;
   } catch {
     return false;
@@ -265,7 +282,9 @@ async function dataUrlToBlob(dataUrl: string) {
 }
 
 function canUseIndexedDb() {
-  return typeof window !== "undefined" && typeof window.indexedDB !== "undefined";
+  return (
+    typeof window !== "undefined" && typeof window.indexedDB !== "undefined"
+  );
 }
 
 let wallpaperDbPromise: Promise<IDBDatabase> | null = null;
@@ -282,7 +301,10 @@ function openWallpaperDb() {
       return;
     }
 
-    const request = window.indexedDB.open(WALLPAPER_DB_NAME, WALLPAPER_DB_VERSION);
+    const request = window.indexedDB.open(
+      WALLPAPER_DB_NAME,
+      WALLPAPER_DB_VERSION,
+    );
 
     request.onerror = () => {
       wallpaperDbPromise = null;
@@ -324,9 +346,12 @@ function runWallpaperTransaction<T>(
         const request = callback(store);
         let result: T;
         let isFinished = false;
-        const timeoutId = window.setTimeout(() => {
-          transaction.abort();
-        }, mode === "readonly" ? 5_000 : 60_000);
+        const timeoutId = window.setTimeout(
+          () => {
+            transaction.abort();
+          },
+          mode === "readonly" ? 5_000 : 60_000,
+        );
 
         function finishTransaction() {
           if (isFinished) {
@@ -350,7 +375,9 @@ function runWallpaperTransaction<T>(
         };
         transaction.onabort = () => {
           finishTransaction();
-          reject(transaction.error ?? new Error("IndexedDB canceló la operación."));
+          reject(
+            transaction.error ?? new Error("IndexedDB canceló la operación."),
+          );
         };
         transaction.onerror = () => {
           finishTransaction();
@@ -362,17 +389,22 @@ function runWallpaperTransaction<T>(
 }
 
 function getStoredWallpaper(id: string) {
-  return runWallpaperTransaction<StoredWallpaper | undefined>("readonly", (store) =>
-    store.get(id),
+  return runWallpaperTransaction<StoredWallpaper | undefined>(
+    "readonly",
+    (store) => store.get(id),
   );
 }
 
 function putStoredWallpaper(record: StoredWallpaper) {
-  return runWallpaperTransaction<IDBValidKey>("readwrite", (store) => store.put(record));
+  return runWallpaperTransaction<IDBValidKey>("readwrite", (store) =>
+    store.put(record),
+  );
 }
 
 function deleteStoredWallpaper(id: string) {
-  return runWallpaperTransaction<undefined>("readwrite", (store) => store.delete(id));
+  return runWallpaperTransaction<undefined>("readwrite", (store) =>
+    store.delete(id),
+  );
 }
 
 function createObjectUrl(blob: Blob) {
@@ -392,8 +424,7 @@ export function useWallpapers(
   const hydratedWallpaperIdsRef = useRef<Set<string>>(new Set());
   const priorityWallpaperKey = priorityWallpaperIds.join("\u0000");
   const stablePriorityWallpaperIds = useMemo(
-    () =>
-      priorityWallpaperKey ? priorityWallpaperKey.split("\u0000") : [],
+    () => (priorityWallpaperKey ? priorityWallpaperKey.split("\u0000") : []),
     [priorityWallpaperKey],
   );
   const wallpapers = useMemo(
@@ -402,10 +433,10 @@ export function useWallpapers(
       ...settings.customWallpapers.map((wallpaper) => ({
         ...wallpaper,
         loadState: sourceById[wallpaper.id]
-          ? "ready" as const
+          ? ("ready" as const)
           : failedWallpaperIds.has(wallpaper.id)
-            ? "error" as const
-            : "loading" as const,
+            ? ("error" as const)
+            : ("loading" as const),
         source: sourceById[wallpaper.id] ?? "",
       })),
     ],
@@ -513,7 +544,8 @@ export function useWallpapers(
 
       if (
         isMounted &&
-        (didMigrateLegacySources || Object.keys(calculatedAverageColors).length > 0)
+        (didMigrateLegacySources ||
+          Object.keys(calculatedAverageColors).length > 0)
       ) {
         const nextSettings = {
           ...settings,
@@ -533,7 +565,12 @@ export function useWallpapers(
     return () => {
       isMounted = false;
     };
-  }, [hydrateWallpaperLibrary, legacySources, settings, stablePriorityWallpaperIds]);
+  }, [
+    hydrateWallpaperLibrary,
+    legacySources,
+    settings,
+    stablePriorityWallpaperIds,
+  ]);
 
   function commit(nextSettings: WallpaperSettings) {
     if (!saveSettings(nextSettings)) {
@@ -546,14 +583,20 @@ export function useWallpapers(
 
   function getAvailableSelectedIds(selectedIds?: string[]) {
     const availableIds = new Set(wallpapers.map((wallpaper) => wallpaper.id));
-    const nextSelectedIds = selectedIds?.filter((id) => availableIds.has(id)) ?? [];
+    const nextSelectedIds =
+      selectedIds?.filter((id) => availableIds.has(id)) ?? [];
 
     return nextSelectedIds.length > 0 ? nextSelectedIds : settings.selectedIds;
   }
 
-  function getWallpaperSource(selectedIds?: string[], currentWallpaperId?: string | null) {
+  function getWallpaperSource(
+    selectedIds?: string[],
+    currentWallpaperId?: string | null,
+  ) {
     const selectedIdSet = new Set(getAvailableSelectedIds(selectedIds));
-    const selectedWallpapers = wallpapers.filter((wallpaper) => selectedIdSet.has(wallpaper.id));
+    const selectedWallpapers = wallpapers.filter((wallpaper) =>
+      selectedIdSet.has(wallpaper.id),
+    );
     const currentWallpaper = selectedWallpapers.find(
       (item) => item.id === currentWallpaperId,
     );
@@ -571,7 +614,9 @@ export function useWallpapers(
 
   function pickWallpaperId(selectedIds?: string[]) {
     const selectedIdSet = new Set(getAvailableSelectedIds(selectedIds));
-    return pickRandomWallpaper(wallpapers.filter((wallpaper) => selectedIdSet.has(wallpaper.id)));
+    return pickRandomWallpaper(
+      wallpapers.filter((wallpaper) => selectedIdSet.has(wallpaper.id)),
+    );
   }
 
   async function addWallpaper(file: File): Promise<AddWallpaperResult> {
@@ -604,24 +649,35 @@ export function useWallpapers(
           delete nextSources[wallpaper.id];
           return nextSources;
         });
-        return { ok: false, message: "No se pudo guardar la configuración de la imagen." };
+        return {
+          ok: false,
+          message: "No se pudo guardar la configuración de la imagen.",
+        };
       }
 
       void getAverageImageColor(file)
         .then((averageColor) => {
           setState((currentState) => {
-            if (!currentState.settings.customWallpapers.some((item) => item.id === wallpaper.id)) {
+            if (
+              !currentState.settings.customWallpapers.some(
+                (item) => item.id === wallpaper.id,
+              )
+            ) {
               return currentState;
             }
 
             const updatedSettings = {
               ...currentState.settings,
-              customWallpapers: currentState.settings.customWallpapers.map((item) =>
-                item.id === wallpaper.id ? { ...item, averageColor } : item,
+              customWallpapers: currentState.settings.customWallpapers.map(
+                (item) =>
+                  item.id === wallpaper.id ? { ...item, averageColor } : item,
               ),
             };
             saveSettings(updatedSettings);
-            return { legacySources: currentState.legacySources, settings: updatedSettings };
+            return {
+              legacySources: currentState.legacySources,
+              settings: updatedSettings,
+            };
           });
         })
         .catch(() => undefined);
@@ -633,21 +689,28 @@ export function useWallpapers(
   }
 
   function removeWallpaper(wallpaperId: string) {
-    const wallpaper = settings.customWallpapers.find((item) => item.id === wallpaperId);
+    const wallpaper = settings.customWallpapers.find(
+      (item) => item.id === wallpaperId,
+    );
 
     if (!wallpaper) {
       return false;
     }
 
-    const nextSelectedIds = settings.selectedIds.filter((id) => id !== wallpaperId);
+    const nextSelectedIds = settings.selectedIds.filter(
+      (id) => id !== wallpaperId,
+    );
     const remainingIds = wallpapers
       .filter((item) => item.id !== wallpaperId)
       .map((item) => item.id);
 
     const didCommit = commit({
       ...settings,
-      customWallpapers: settings.customWallpapers.filter((item) => item.id !== wallpaperId),
-      selectedIds: nextSelectedIds.length > 0 ? nextSelectedIds : [remainingIds[0]],
+      customWallpapers: settings.customWallpapers.filter(
+        (item) => item.id !== wallpaperId,
+      ),
+      selectedIds:
+        nextSelectedIds.length > 0 ? nextSelectedIds : [remainingIds[0]],
     });
 
     if (didCommit) {
@@ -705,14 +768,19 @@ export function useWallpapers(
     };
   }
 
-  async function importWallpapers(data: unknown): Promise<ImportWallpapersResult> {
+  async function importWallpapers(
+    data: unknown,
+  ): Promise<ImportWallpapersResult> {
     if (!data || typeof data !== "object") {
       return { ok: true };
     }
 
     const bundle = data as Partial<WallpaperExportData>;
 
-    if (!Array.isArray(bundle.customWallpapers) && !Array.isArray(bundle.selectedIds)) {
+    if (
+      !Array.isArray(bundle.customWallpapers) &&
+      !Array.isArray(bundle.selectedIds)
+    ) {
       return { ok: true };
     }
 
@@ -764,17 +832,22 @@ export function useWallpapers(
       ]);
       const selectedIds = Array.isArray(bundle.selectedIds)
         ? bundle.selectedIds.filter(
-            (id): id is string => typeof id === "string" && availableIds.has(id),
+            (id): id is string =>
+              typeof id === "string" && availableIds.has(id),
           )
         : settings.selectedIds;
       const nextSettings = {
         customWallpapers,
-        selectedIds: selectedIds.length > 0 ? selectedIds : settings.selectedIds,
+        selectedIds:
+          selectedIds.length > 0 ? selectedIds : settings.selectedIds,
         version: 1 as const,
       };
 
       if (!commit(nextSettings)) {
-        return { ok: false, message: "No se pudo guardar la configuración de fondos." };
+        return {
+          ok: false,
+          message: "No se pudo guardar la configuración de fondos.",
+        };
       }
 
       importedWallpaperBlobs.forEach((blob, wallpaperId) => {
@@ -783,7 +856,9 @@ export function useWallpapers(
 
       return {
         backgroundColor:
-          typeof bundle.backgroundColor === "string" ? bundle.backgroundColor : undefined,
+          typeof bundle.backgroundColor === "string"
+            ? bundle.backgroundColor
+            : undefined,
         backgroundMode:
           bundle.backgroundMode === "color-fixed" ||
           bundle.backgroundMode === "image-fixed" ||
