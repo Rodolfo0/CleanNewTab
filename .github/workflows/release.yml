@@ -37,6 +37,7 @@ jobs:
         run: npm run lint
 
       - name: Build release packages
+        id: build
         if: ${{ steps.release.outputs.release_created }}
         run: npm run package:mozilla
 
@@ -48,3 +49,105 @@ jobs:
           gh release upload "${{ steps.release.outputs.tag_name }}"
           artifacts/*.zip
           --clobber
+
+      - name: Submit to Chrome Web Store
+        if: ${{ steps.release.outputs.release_created }}
+        env:
+          CHROME_CLIENT_ID: ${{ secrets.CHROME_CLIENT_ID }}
+          CHROME_CLIENT_SECRET: ${{ secrets.CHROME_CLIENT_SECRET }}
+          CHROME_REFRESH_TOKEN: ${{ secrets.CHROME_REFRESH_TOKEN }}
+          CHROME_PUBLISHER_ID: ${{ secrets.CHROME_PUBLISHER_ID }}
+          CHROME_EXTENSION_ID: ${{ secrets.CHROME_EXTENSION_ID }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          chrome_package="$(find artifacts -maxdepth 1 -type f -name 'clean-new-tab-chrome-*.zip' -print -quit)"
+          if [[ -z "$chrome_package" ]]; then
+            echo "Chrome package was not found." >&2
+            exit 1
+          fi
+
+          token_response="$(
+            curl --fail-with-body --silent --show-error \
+              --request POST \
+              --data-urlencode "client_id=$CHROME_CLIENT_ID" \
+              --data-urlencode "client_secret=$CHROME_CLIENT_SECRET" \
+              --data-urlencode "refresh_token=$CHROME_REFRESH_TOKEN" \
+              --data-urlencode "grant_type=refresh_token" \
+              https://oauth2.googleapis.com/token
+          )"
+          access_token="$(jq -r '.access_token // empty' <<<"$token_response")"
+          if [[ -z "$access_token" ]]; then
+            echo "Google OAuth did not return an access token." >&2
+            exit 1
+          fi
+
+          item_name="publishers/$CHROME_PUBLISHER_ID/items/$CHROME_EXTENSION_ID"
+          upload_response="$(
+            curl --fail-with-body --silent --show-error \
+              --request POST \
+              --header "Authorization: Bearer $access_token" \
+              --header "Content-Type: application/zip" \
+              --data-binary "@$chrome_package" \
+              "https://chromewebstore.googleapis.com/upload/v2/$item_name:upload"
+          )"
+          upload_state="$(jq -r '.uploadState // empty' <<<"$upload_response")"
+
+          for attempt in {1..30}; do
+            if [[ "$upload_state" != "IN_PROGRESS" && "$upload_state" != "UPLOAD_IN_PROGRESS" ]]; then
+              break
+            fi
+
+            sleep 10
+            status_response="$(
+              curl --fail-with-body --silent --show-error \
+                --header "Authorization: Bearer $access_token" \
+                "https://chromewebstore.googleapis.com/v2/$item_name:fetchStatus"
+            )"
+            upload_state="$(jq -r '.lastAsyncUploadState // empty' <<<"$status_response")"
+          done
+
+          if [[ "$upload_state" != "SUCCEEDED" ]]; then
+            echo "Chrome upload failed or timed out with state: ${upload_state:-unknown}" >&2
+            exit 1
+          fi
+
+          publish_response="$(
+            curl --fail-with-body --silent --show-error \
+              --request POST \
+              --header "Authorization: Bearer $access_token" \
+              --header "Content-Type: application/json" \
+              --data '{"publishType":"DEFAULT_PUBLISH"}' \
+              "https://chromewebstore.googleapis.com/v2/$item_name:publish"
+          )"
+          publish_state="$(jq -r '.state // empty' <<<"$publish_response")"
+          if [[ -z "$publish_state" ]]; then
+            echo "Chrome did not confirm the submission state." >&2
+            exit 1
+          fi
+
+          echo "Chrome submission state: $publish_state"
+
+      - name: Submit to Mozilla Add-ons
+        if: ${{ always() && steps.release.outputs.release_created && steps.build.outcome == 'success' }}
+        env:
+          AMO_JWT_ISSUER: ${{ secrets.AMO_JWT_ISSUER }}
+          AMO_JWT_SECRET: ${{ secrets.AMO_JWT_SECRET }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          source_package="$(find artifacts -maxdepth 1 -type f -name 'clean-new-tab-source-*.zip' -print -quit)"
+          if [[ -z "$source_package" ]]; then
+            echo "Source package was not found." >&2
+            exit 1
+          fi
+
+          npx --yes web-ext@latest sign \
+            --source-dir dist/firefox \
+            --channel listed \
+            --api-key "$AMO_JWT_ISSUER" \
+            --api-secret "$AMO_JWT_SECRET" \
+            --upload-source-code "$source_package" \
+            --approval-timeout 0

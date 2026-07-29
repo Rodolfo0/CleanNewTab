@@ -38,8 +38,8 @@ export const defaultBoard: Board = {
       layout: {
         x: 0,
         y: 0,
-        width: 560,
-        height: 88,
+        width: 700,
+        height: 50,
         anchorX: 'center',
         anchorY: 'center',
       },
