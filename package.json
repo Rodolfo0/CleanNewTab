@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc --noEmit && node scripts/build-extension.mjs",
+    "package:mozilla": "npm run build && node scripts/package-mozilla.mjs",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "preview": "vite preview"

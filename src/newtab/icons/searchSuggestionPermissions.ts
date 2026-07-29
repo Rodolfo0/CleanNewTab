@@ -10,7 +10,10 @@ const suggestionOrigins: Partial<Record<SearchEngineId, string>> = {
 
 type BrowserPermissions = {
   request: (
-    permissions: { origins: string[] },
+    permissions: {
+      origins: string[];
+      data_collection?: ["searchTerms"];
+    },
     callback?: (granted: boolean) => void,
   ) => Promise<boolean> | void;
 };
@@ -39,7 +42,10 @@ export async function requestSearchSuggestionPermission(
   try {
     if (browserPermissions) {
       return await Promise.resolve(
-        browserPermissions.request({ origins: [origin] }),
+        browserPermissions.request({
+          origins: [origin],
+          data_collection: ["searchTerms"],
+        }),
       );
     }
 
