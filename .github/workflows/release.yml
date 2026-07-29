@@ -1,35 +1,50 @@
-name: Build release packages
+name: Release
 
 on:
   push:
-    tags:
-      - "v*"
+    branches:
+      - main
 
 permissions:
   contents: write
+  pull-requests: write
 
 jobs:
   release:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - name: Prepare or create release
+        id: release
+        uses: googleapis/release-please-action@v5
+
+      - name: Check out released version
+        if: ${{ steps.release.outputs.release_created }}
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        if: ${{ steps.release.outputs.release_created }}
+        uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: npm
-      - run: npm ci
-      - run: npm run build
-      - name: Package browser builds
-        run: |
-          cd dist/chrome
-          zip -r ../clean-new-tab-chrome.zip .
-          cd ../firefox
-          zip -r ../clean-new-tab-firefox.zip .
-      - name: Create GitHub release
+
+      - name: Install dependencies
+        if: ${{ steps.release.outputs.release_created }}
+        run: npm ci
+
+      - name: Validate project
+        if: ${{ steps.release.outputs.release_created }}
+        run: npm run lint
+
+      - name: Build release packages
+        if: ${{ steps.release.outputs.release_created }}
+        run: npm run package:mozilla
+
+      - name: Attach packages to GitHub release
+        if: ${{ steps.release.outputs.release_created }}
         env:
           GH_TOKEN: ${{ github.token }}
         run: >-
-          gh release create "${{ github.ref_name }}"
-          dist/clean-new-tab-chrome.zip
-          dist/clean-new-tab-firefox.zip
-          --generate-notes
+          gh release upload "${{ steps.release.outputs.tag_name }}"
+          artifacts/*.zip
+          --clobber

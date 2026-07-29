@@ -25,12 +25,34 @@ npm run package:mozilla
 
 Esto genera en `artifacts/`:
 
-- `clean-new-tab-firefox-0.1.0.zip`: extensión compilada para subir a AMO.
-- `clean-new-tab-source-0.1.0.zip`: código fuente legible para la revisión.
+- `clean-new-tab-chrome-<versión>.zip`: extensión compilada para Chromium.
+- `clean-new-tab-firefox-<versión>.zip`: extensión compilada para subir a AMO.
+- `clean-new-tab-source-<versión>.zip`: código fuente legible para la revisión.
+
+Los nombres usan automáticamente la versión definida en `package.json`.
 
 El código fuente se reconstruye con Node.js 20 o posterior mediante `npm ci` y
 `npm run build`. No requiere variables de entorno ni pasos de generación
 adicionales.
+
+## Versionado y publicaciones
+
+El repositorio usa Release Please. Los cambios se integran a `main` mediante
+commits convencionales:
+
+```text
+fix: corrige un error
+feat: agrega una funcionalidad
+feat!: introduce un cambio incompatible
+```
+
+Release Please mantiene un PR de publicación y calcula la siguiente versión
+según los cambios acumulados. Al fusionar ese PR, GitHub crea la etiqueta y la
+publicación, construye los paquetes y adjunta los tres ZIP automáticamente.
+
+- `fix` incrementa la versión patch: `0.1.0` → `0.1.1`.
+- `feat` incrementa la versión minor: `0.1.0` → `0.2.0`.
+- `feat!` incrementa la versión major: `0.1.0` → `1.0.0`.
 
 ### Chrome / Chromium
 
