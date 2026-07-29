@@ -24,6 +24,30 @@ function createId() {
   return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
 }
 
+export function cloneBoardItem(item: BoardItem): BoardItem {
+  const clonedItem = JSON.parse(JSON.stringify(item)) as BoardItem;
+  const createdAt = new Date().toISOString();
+
+  if (clonedItem.type === "group") {
+    return {
+      ...clonedItem,
+      id: createId(),
+      createdAt,
+      links: clonedItem.links.map((link) => ({
+        ...link,
+        id: createId(),
+        createdAt,
+      })),
+    };
+  }
+
+  return {
+    ...clonedItem,
+    id: createId(),
+    createdAt,
+  };
+}
+
 export function normalizeUrl(value: string) {
   const url = value.trim();
   if (!url) return "";

@@ -11,6 +11,7 @@ import {
   CANVAS_WIDTH,
   clampItemLayout,
   clampLayout,
+  cloneBoardItem,
   copyBoard,
   createBoardItem,
   createLink,
@@ -183,6 +184,7 @@ export function NewTab() {
     return { [activeSpace.id]: selectedId ?? null };
   });
   const importInputRef = useRef<HTMLInputElement>(null);
+  const copiedItemRef = useRef<BoardItemData | null>(null);
   const today = useMemo(() => dateFormatter.format(new Date()), []);
   const currentPriorityWallpaperId = currentWallpaperBySpace[activeSpace.id];
   const priorityWallpaperIds = currentPriorityWallpaperId
@@ -1079,6 +1081,67 @@ export function NewTab() {
     setFloatingWindow(null);
   }
 
+  function copySelectedItem() {
+    if (!isEditing || !selectedConfigItem) {
+      return;
+    }
+
+    copiedItemRef.current = copyBoard({
+      version: 1,
+      items: [selectedConfigItem],
+    }).items[0];
+  }
+
+  function insertItemCopy(sourceItem: BoardItemData) {
+    const nextItem = cloneBoardItem(sourceItem);
+    const layout = nextItem.layout;
+    const left = getViewportLeft(layout, viewportWidth) + 24;
+    const top = getViewportTop(layout, viewportHeight) + 24;
+    const nextLayout = clampItemLayout(nextItem, {
+      ...layout,
+      x: getAnchoredXFromLeft({
+        anchorX: getLayoutAnchorX(layout),
+        left,
+        viewportWidth,
+        width: layout.width,
+      }),
+      y: getAnchoredYFromTop({
+        anchorY: getLayoutAnchorY(layout),
+        height: layout.height,
+        top,
+        viewportHeight,
+      }),
+    });
+    const positionedItem = { ...nextItem, layout: nextLayout };
+
+    setDraftBoard((currentBoard) => ({
+      ...currentBoard,
+      items: [...currentBoard.items, positionedItem],
+    }));
+    setSelectedItemId(positionedItem.id);
+    setFloatingWindow(null);
+    copiedItemRef.current = copyBoard({
+      version: 1,
+      items: [positionedItem],
+    }).items[0];
+  }
+
+  function pasteCopiedItem() {
+    if (!isEditing || !copiedItemRef.current) {
+      return;
+    }
+
+    insertItemCopy(copiedItemRef.current);
+  }
+
+  function duplicateSelectedItem() {
+    if (!isEditing || !selectedConfigItem) {
+      return;
+    }
+
+    insertItemCopy(selectedConfigItem);
+  }
+
   function selectItem(itemId: string, itemType: BoardItemType) {
     setSelectedItemId(itemId);
 
@@ -1142,6 +1205,9 @@ export function NewTab() {
         }
       },
     ],
+    ["mod+C", copySelectedItem],
+    ["mod+V", pasteCopiedItem],
+    ["mod+D", duplicateSelectedItem],
     [
       "Escape",
       () => {

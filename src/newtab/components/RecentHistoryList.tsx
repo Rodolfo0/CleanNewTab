@@ -16,7 +16,7 @@ export function RecentHistoryList({
   const { items, requestPermission, status } = useRecentHistory();
 
   return (
-    <CollapsibleSection title="Recientes">
+    <CollapsibleSection title="Recientes" onOpen={requestPermission}>
       <Stack gap={8}>
         {status === "permission-required" || status === "denied" ? (
           <Button

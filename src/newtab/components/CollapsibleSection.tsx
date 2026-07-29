@@ -4,12 +4,21 @@ import { useState, type ReactNode } from "react";
 
 export function CollapsibleSection({
   children,
+  onOpen,
   title,
 }: {
   children: ReactNode;
+  onOpen?: () => void;
   title: string;
 }) {
   const [opened, setOpened] = useState(false);
+
+  function toggleOpened() {
+    if (!opened) {
+      onOpen?.();
+    }
+    setOpened((value) => !value);
+  }
 
   return (
     <div className="overflow-hidden rounded-md border border-[#eaecf0]">
@@ -17,7 +26,7 @@ export function CollapsibleSection({
         type="button"
         className="flex w-full items-center justify-between gap-2 bg-white px-2.5 py-2 text-left transition-colors hover:bg-[#f9fafb]"
         aria-expanded={opened}
-        onClick={() => setOpened((value) => !value)}
+        onClick={toggleOpened}
       >
         <Text size="xs" fw={700} className="text-[#344054]">
           {title}
