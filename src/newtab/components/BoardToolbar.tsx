@@ -1,5 +1,6 @@
 import { ActionIcon, Button, Group, Tooltip } from "@mantine/core";
 import {
+  BrowsersIcon,
   DownloadSimpleIcon,
   FloppyDiskIcon,
   ImageSquareIcon,
@@ -21,6 +22,7 @@ type BoardToolbarProps = {
   onExport: () => void;
   onImport: () => void;
   onSave: () => void;
+  onTabIcon: () => void;
   onThemes: () => void;
   onToggleColorScheme: () => void;
   onWallpapers: () => void;
@@ -35,6 +37,7 @@ export function BoardToolbar({
   onExport,
   onImport,
   onSave,
+  onTabIcon,
   onThemes,
   onToggleColorScheme,
   onWallpapers,
@@ -85,6 +88,17 @@ export function BoardToolbar({
               onClick={onThemes}
             >
               <PaletteIcon size={20} />
+            </ActionIcon>
+          </Tooltip>
+          <Tooltip label="Ícono de pestaña">
+            <ActionIcon
+              size="lg"
+              variant="default"
+              radius="md"
+              aria-label="Personalizar ícono de pestaña"
+              onClick={onTabIcon}
+            >
+              <BrowsersIcon size={20} />
             </ActionIcon>
           </Tooltip>
           <Tooltip label="Importar tablero">

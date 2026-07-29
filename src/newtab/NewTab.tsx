@@ -70,6 +70,11 @@ const WallpaperWindow = lazy(() =>
     default: module.WallpaperWindow,
   })),
 );
+const TabIconWindow = lazy(() =>
+  import("./components/TabIconWindow").then((module) => ({
+    default: module.TabIconWindow,
+  })),
+);
 
 const dateFormatter = new Intl.DateTimeFormat("es-MX", {
   weekday: "long",
@@ -93,6 +98,7 @@ type FloatingWindowState =
   | "config"
   | "group-links"
   | "themes"
+  | "tab-icon"
   | "title-design"
   | "wallpapers"
   | null;
@@ -107,6 +113,25 @@ type BoardImportPayload = {
 
 const defaultBackgroundColor = "#f1f3f5";
 const defaultBackgroundMode: BoardBackgroundMode = "image-rotating";
+const tabIconStorageKey = "clean-new-tab:tab-icon:v1";
+const tabTitleStorageKey = "clean-new-tab:tab-title:v1";
+const defaultTabTitle = "Nueva pestaña";
+
+function loadTabIcon() {
+  try {
+    return window.localStorage.getItem(tabIconStorageKey);
+  } catch {
+    return null;
+  }
+}
+
+function loadTabTitle() {
+  try {
+    return window.localStorage.getItem(tabTitleStorageKey) ?? defaultTabTitle;
+  } catch {
+    return defaultTabTitle;
+  }
+}
 
 function shouldFitHeightForStyleChange(
   item: BoardItemData,
@@ -133,6 +158,8 @@ export function NewTab() {
   const { setColorScheme } = useMantineColorScheme({ keepTransitions: true });
   const colorScheme = useComputedColorScheme("light");
   const [workspace, setWorkspace] = useState(() => workspaceStorage.load());
+  const [tabIcon, setTabIcon] = useState<string | null>(loadTabIcon);
+  const [tabTitle, setTabTitle] = useState(loadTabTitle);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(true);
   const activeSpace =
     workspace.spaces.find((space) => space.id === workspace.activeSpaceId) ??
@@ -200,6 +227,25 @@ export function NewTab() {
   useEffect(() => {
     workspaceStorage.save(workspace);
   }, [workspace]);
+
+  useEffect(() => {
+    let iconLink = document.querySelector<HTMLLinkElement>('link[rel="icon"]');
+
+    if (!iconLink) {
+      iconLink = document.createElement("link");
+      iconLink.rel = "icon";
+      document.head.append(iconLink);
+    }
+
+    iconLink.href =
+      tabIcon === ""
+        ? "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg'/%3E"
+        : tabIcon ?? "/favicon.svg";
+  }, [tabIcon]);
+
+  useEffect(() => {
+    document.title = tabTitle.trim() || defaultTabTitle;
+  }, [tabTitle]);
 
   useEffect(() => {
     const root = document.documentElement;
@@ -460,6 +506,36 @@ export function NewTab() {
           : space,
       ),
     }));
+  }
+
+  function updateTabIcon(iconSource: string | null) {
+    try {
+      if (iconSource !== null) {
+        window.localStorage.setItem(tabIconStorageKey, iconSource);
+      } else {
+        window.localStorage.removeItem(tabIconStorageKey);
+      }
+
+      setTabIcon(iconSource);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  function updateTabTitle(title: string) {
+    try {
+      if (title.trim() && title !== defaultTabTitle) {
+        window.localStorage.setItem(tabTitleStorageKey, title);
+      } else {
+        window.localStorage.removeItem(tabTitleStorageKey);
+      }
+
+      setTabTitle(title);
+      return true;
+    } catch {
+      return false;
+    }
   }
 
   async function addWallpaperToActiveSpace(file: File) {
@@ -1184,6 +1260,7 @@ export function NewTab() {
           onExport={() => void exportBoard()}
           onImport={requestImportBoard}
           onSave={saveEditing}
+          onTabIcon={() => setFloatingWindow("tab-icon")}
           onThemes={() => setFloatingWindow("themes")}
           onToggleColorScheme={() =>
             setColorScheme(colorScheme === "dark" ? "light" : "dark")
@@ -1221,6 +1298,16 @@ export function NewTab() {
               themeId={componentThemeId}
               onChange={updateActiveSpaceComponentTheme}
               onClose={() => setFloatingWindow(null)}
+            />
+          ) : null}
+          {floatingWindow === "tab-icon" ? (
+            <TabIconWindow
+              iconSource={tabIcon}
+              opened
+              tabTitle={tabTitle}
+              onChange={updateTabIcon}
+              onClose={() => setFloatingWindow(null)}
+              onTitleChange={updateTabTitle}
             />
           ) : null}
           {isEditing && floatingWindow === "add" ? (
