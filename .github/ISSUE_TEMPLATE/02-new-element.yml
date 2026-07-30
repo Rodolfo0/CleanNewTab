@@ -1,0 +1,75 @@
+name: "🧩 Propuesta de nuevo elemento"
+description: Sugiere un nuevo tipo de elemento para agregar al tablero.
+title: "[Elemento]: "
+labels:
+  - idea
+  - new-element
+  - needs-triage
+assignees: []
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Usa esta plantilla para proponer elementos como notas, clima, reloj, calendario u otros componentes del tablero.
+
+  - type: input
+    id: element-name
+    attributes:
+      label: Nombre del elemento
+      placeholder: "Ejemplo: Nota rápida"
+    validations:
+      required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Necesidad que resuelve
+      description: Explica por qué este elemento sería útil.
+      placeholder: Como usuario, necesito...
+    validations:
+      required: true
+
+  - type: textarea
+    id: behavior
+    attributes:
+      label: Funcionamiento esperado
+      description: Describe qué mostraría y cómo interactuaría el usuario con él.
+    validations:
+      required: true
+
+  - type: textarea
+    id: configuration
+    attributes:
+      label: Opciones de configuración
+      description: Colores, tamaños, fuentes, fuentes de datos u otras opciones.
+
+  - type: textarea
+    id: permissions
+    attributes:
+      label: Datos y permisos
+      description: Indica si necesitaría Internet, historial, ubicación, calendario u otro permiso. Escribe "Ninguno" si no aplica.
+    validations:
+      required: true
+
+  - type: textarea
+    id: example
+    attributes:
+      label: Ejemplo de uso
+      placeholder: Un usuario podría...
+    validations:
+      required: true
+
+  - type: textarea
+    id: references
+    attributes:
+      label: Referencias visuales
+      description: Agrega bocetos, capturas o enlaces de referencia si existen.
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Confirmación
+      options:
+        - label: Verifiqué que este elemento no haya sido propuesto anteriormente.
+          required: true
+

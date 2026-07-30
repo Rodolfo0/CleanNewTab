@@ -1,0 +1,69 @@
+name: "🎨 Diseño y experiencia de usuario"
+description: Propón mejoras visuales, de interacción o accesibilidad.
+title: "[Diseño/UX]: "
+labels:
+  - design
+  - ux
+  - needs-triage
+assignees: []
+body:
+  - type: dropdown
+    id: category
+    attributes:
+      label: Categoría
+      options:
+        - Interfaz visual
+        - Flujo de interacción
+        - Accesibilidad
+        - Diseño responsive
+        - Temas y colores
+        - Animaciones
+        - Consistencia de componentes
+        - Otra
+    validations:
+      required: true
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Contexto
+      description: Explica dónde se encuentra la interfaz y qué intenta hacer el usuario.
+    validations:
+      required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problema de diseño o experiencia
+      description: Describe la dificultad, confusión o inconsistencia.
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Solución propuesta
+      description: Explica cómo debería verse o comportarse.
+    validations:
+      required: true
+
+  - type: textarea
+    id: accessibility
+    attributes:
+      label: Consideraciones de accesibilidad
+      description: Contraste, navegación por teclado, lectores de pantalla, tamaño de texto u otros aspectos.
+
+  - type: textarea
+    id: references
+    attributes:
+      label: Bocetos o referencias
+      description: Adjunta imágenes o enlaces que ayuden a visualizar la propuesta.
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Confirmación
+      options:
+        - label: La propuesta mantiene una experiencia clara tanto en Chrome como en Firefox.
+          required: true
+

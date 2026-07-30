@@ -1,0 +1,71 @@
+name: "✨ Nueva funcionalidad"
+description: Propón una capacidad general nueva para la extensión.
+title: "[Feature]: "
+labels:
+  - enhancement
+  - feature
+  - needs-triage
+assignees: []
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Esta plantilla es para funciones generales como sincronización, importación, exportación, atajos o administración de espacios.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problema o necesidad
+      placeholder: Actualmente es difícil...
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Funcionalidad propuesta
+      description: Describe la solución y su alcance.
+    validations:
+      required: true
+
+  - type: textarea
+    id: flow
+    attributes:
+      label: Flujo esperado
+      description: Explica paso a paso cómo se utilizaría.
+      placeholder: |
+        1. El usuario...
+        2. La extensión...
+        3. Finalmente...
+    validations:
+      required: true
+
+  - type: textarea
+    id: benefit
+    attributes:
+      label: Beneficio para los usuarios
+    validations:
+      required: true
+
+  - type: textarea
+    id: privacy
+    attributes:
+      label: Privacidad y permisos
+      description: ¿Requeriría nuevos permisos, servicios externos o transmisión de datos? Escribe "No" si no aplica.
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternativas consideradas
+      description: Explica otras soluciones o formas actuales de resolverlo.
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Confirmación
+      options:
+        - label: Busqué propuestas similares antes de crear este issue.
+          required: true
+

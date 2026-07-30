@@ -1,0 +1,69 @@
+name: "🛠️ Mejora de función existente"
+description: Sugiere una mejora para algo que Clean New Tab ya incluye.
+title: "[Mejora]: "
+labels:
+  - enhancement
+  - improvement
+  - needs-triage
+assignees: []
+body:
+  - type: dropdown
+    id: area
+    attributes:
+      label: Área relacionada
+      options:
+        - Tablero y espacios
+        - Enlaces y grupos
+        - Buscador y sugerencias
+        - Historial y sitios recientes
+        - Fondos y temas
+        - Configuración
+        - Importación o almacenamiento
+        - Otra
+    validations:
+      required: true
+
+  - type: textarea
+    id: current
+    attributes:
+      label: Comportamiento actual
+      description: Explica cómo funciona actualmente.
+    validations:
+      required: true
+
+  - type: textarea
+    id: improvement
+    attributes:
+      label: Mejora propuesta
+      description: Describe qué debería cambiar.
+    validations:
+      required: true
+
+  - type: textarea
+    id: benefit
+    attributes:
+      label: ¿Por qué sería mejor?
+      description: Explica el beneficio y a quién ayudaría.
+    validations:
+      required: true
+
+  - type: textarea
+    id: compatibility
+    attributes:
+      label: Compatibilidad o posibles efectos
+      description: Indica si podría afectar datos existentes, permisos o algún navegador.
+
+  - type: textarea
+    id: references
+    attributes:
+      label: Ejemplos o referencias
+      description: Agrega capturas, bocetos o productos con un comportamiento similar.
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Confirmación
+      options:
+        - label: Esta solicitud mejora una función existente y no describe un error.
+          required: true
+

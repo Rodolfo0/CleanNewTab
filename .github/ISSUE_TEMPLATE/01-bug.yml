@@ -1,0 +1,110 @@
+name: "🐛 Reporte de error"
+description: Reporta un fallo o comportamiento inesperado de Clean New Tab.
+title: "[Bug]: "
+labels:
+  - bug
+  - needs-triage
+assignees: []
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Gracias por ayudarnos a mejorar Clean New Tab. No incluyas historial, URLs privadas, credenciales ni otra información sensible.
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Descripción
+      description: Explica claramente qué ocurrió.
+      placeholder: Al intentar..., la extensión...
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Pasos para reproducirlo
+      description: Escribe una lista ordenada que permita repetir el problema.
+      placeholder: |
+        1. Abre una nueva pestaña.
+        2. Selecciona...
+        3. Observa...
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Resultado esperado
+      placeholder: Esperaba que...
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Resultado actual
+      placeholder: En su lugar ocurrió...
+    validations:
+      required: true
+
+  - type: dropdown
+    id: browser
+    attributes:
+      label: Navegador
+      options:
+        - Google Chrome
+        - Mozilla Firefox
+        - Microsoft Edge
+        - Brave
+        - Otro navegador Chromium
+        - Otro
+    validations:
+      required: true
+
+  - type: input
+    id: browser-version
+    attributes:
+      label: Versión del navegador
+      placeholder: "Ejemplo: Chrome 140"
+    validations:
+      required: true
+
+  - type: input
+    id: extension-version
+    attributes:
+      label: Versión de Clean New Tab
+      placeholder: "Ejemplo: 0.2.1"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: operating-system
+    attributes:
+      label: Sistema operativo
+      options:
+        - Windows
+        - macOS
+        - Linux
+        - ChromeOS
+        - Android
+        - Otro
+    validations:
+      required: true
+
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Capturas, video o información adicional
+      description: Arrastra aquí archivos que ayuden a entender el problema. Oculta cualquier dato privado.
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Confirmaciones
+      options:
+        - label: Busqué issues existentes y no encontré el mismo problema.
+          required: true
+        - label: Confirmo que este reporte no contiene información privada o sensible.
+          required: true
+
