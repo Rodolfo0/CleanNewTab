@@ -20,16 +20,12 @@ body:
         - Animaciones
         - Consistencia de componentes
         - Otra
-    validations:
-      required: true
 
   - type: textarea
     id: context
     attributes:
       label: Contexto
       description: Explica dónde se encuentra la interfaz y qué intenta hacer el usuario.
-    validations:
-      required: true
 
   - type: textarea
     id: problem
@@ -58,12 +54,3 @@ body:
     attributes:
       label: Bocetos o referencias
       description: Adjunta imágenes o enlaces que ayuden a visualizar la propuesta.
-
-  - type: checkboxes
-    id: checks
-    attributes:
-      label: Confirmación
-      options:
-        - label: La propuesta mantiene una experiencia clara tanto en Chrome como en Firefox.
-          required: true
-

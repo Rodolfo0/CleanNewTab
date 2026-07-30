@@ -26,8 +26,6 @@ body:
       label: Necesidad que resuelve
       description: Explica por qué este elemento sería útil.
       placeholder: Como usuario, necesito...
-    validations:
-      required: true
 
   - type: textarea
     id: behavior
@@ -48,28 +46,15 @@ body:
     attributes:
       label: Datos y permisos
       description: Indica si necesitaría Internet, historial, ubicación, calendario u otro permiso. Escribe "Ninguno" si no aplica.
-    validations:
-      required: true
 
   - type: textarea
     id: example
     attributes:
       label: Ejemplo de uso
       placeholder: Un usuario podría...
-    validations:
-      required: true
 
   - type: textarea
     id: references
     attributes:
       label: Referencias visuales
       description: Agrega bocetos, capturas o enlaces de referencia si existen.
-
-  - type: checkboxes
-    id: checks
-    attributes:
-      label: Confirmación
-      options:
-        - label: Verifiqué que este elemento no haya sido propuesto anteriormente.
-          required: true
-

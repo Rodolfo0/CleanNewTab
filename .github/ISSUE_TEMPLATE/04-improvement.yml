@@ -20,16 +20,12 @@ body:
         - Configuración
         - Importación o almacenamiento
         - Otra
-    validations:
-      required: true
 
   - type: textarea
     id: current
     attributes:
       label: Comportamiento actual
       description: Explica cómo funciona actualmente.
-    validations:
-      required: true
 
   - type: textarea
     id: improvement
@@ -44,8 +40,6 @@ body:
     attributes:
       label: ¿Por qué sería mejor?
       description: Explica el beneficio y a quién ayudaría.
-    validations:
-      required: true
 
   - type: textarea
     id: compatibility
@@ -58,12 +52,3 @@ body:
     attributes:
       label: Ejemplos o referencias
       description: Agrega capturas, bocetos o productos con un comportamiento similar.
-
-  - type: checkboxes
-    id: checks
-    attributes:
-      label: Confirmación
-      options:
-        - label: Esta solicitud mejora una función existente y no describe un error.
-          required: true
-

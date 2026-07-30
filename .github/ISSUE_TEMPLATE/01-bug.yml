@@ -37,16 +37,12 @@ body:
     attributes:
       label: Resultado esperado
       placeholder: Esperaba que...
-    validations:
-      required: true
 
   - type: textarea
     id: actual
     attributes:
       label: Resultado actual
       placeholder: En su lugar ocurrió...
-    validations:
-      required: true
 
   - type: dropdown
     id: browser
@@ -59,24 +55,18 @@ body:
         - Brave
         - Otro navegador Chromium
         - Otro
-    validations:
-      required: true
 
   - type: input
     id: browser-version
     attributes:
       label: Versión del navegador
       placeholder: "Ejemplo: Chrome 140"
-    validations:
-      required: true
 
   - type: input
     id: extension-version
     attributes:
       label: Versión de Clean New Tab
       placeholder: "Ejemplo: 0.2.1"
-    validations:
-      required: true
 
   - type: dropdown
     id: operating-system
@@ -89,22 +79,9 @@ body:
         - ChromeOS
         - Android
         - Otro
-    validations:
-      required: true
 
   - type: textarea
     id: evidence
     attributes:
       label: Capturas, video o información adicional
       description: Arrastra aquí archivos que ayuden a entender el problema. Oculta cualquier dato privado.
-
-  - type: checkboxes
-    id: checks
-    attributes:
-      label: Confirmaciones
-      options:
-        - label: Busqué issues existentes y no encontré el mismo problema.
-          required: true
-        - label: Confirmo que este reporte no contiene información privada o sensible.
-          required: true
-
