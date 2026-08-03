@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Clean New Tab",
   "description": "A clean replacement for the browser new tab page.",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "permissions": [
     "identity",
     "storage"
@@ -25,7 +25,9 @@
   },
   "oauth2": {
     "client_id": "413769723468-i098drsav8f8le6l66jiufeg5ob0ftb5.apps.googleusercontent.com",
-    "scopes": ["https://www.googleapis.com/auth/drive.appdata"]
+    "scopes": [
+      "https://www.googleapis.com/auth/drive.appdata"
+    ]
   },
   "chrome_url_overrides": {
     "newtab": "index.html"
