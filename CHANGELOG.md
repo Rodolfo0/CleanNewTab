@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.1](https://github.com/Rodolfo0/CustomNewTab/compare/clean-new-tab-v0.3.0...clean-new-tab-v0.3.1) (2026-08-03)
+
+
+### Bug Fixes
+
+* Add publish-current GitHub Actions workflow ([bcca442](https://github.com/Rodolfo0/CustomNewTab/commit/bcca442aac250c79236927dc61e89156308afea4))
+
 ## [0.3.0](https://github.com/Rodolfo0/CustomNewTab/compare/clean-new-tab-v0.2.0...clean-new-tab-v0.3.0) (2026-08-03)
 
 
