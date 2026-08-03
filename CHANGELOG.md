@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.0](https://github.com/Rodolfo0/CustomNewTab/compare/clean-new-tab-v0.2.0...clean-new-tab-v0.3.0) (2026-08-03)
+
+
+### Features
+
+* Add Google Drive sync support and UI ([c7f52f5](https://github.com/Rodolfo0/CustomNewTab/commit/c7f52f524450afe2ac3cc27888e09c9cbcb18177))
+
 ## [0.2.0](https://github.com/Rodolfo0/CustomNewTab/compare/clean-new-tab-v0.1.0...clean-new-tab-v0.2.0) (2026-07-30)
 
 
