@@ -1,4 +1,5 @@
-import type { BoardWorkspace } from './boardStorage'
+import type { SyncedBoardWorkspace } from './boardStorage'
+import type { WallpaperExportData } from '../hooks/useSessionWallpaper'
 
 export type DriveSyncState =
   | 'checking'
@@ -16,8 +17,10 @@ export type DriveWorkspaceEnvelope = {
   revision: number
   updatedAt: string
   updatedBy: string
-  workspace: BoardWorkspace
+  workspace: SyncedBoardWorkspace
 }
+
+export type DriveWallpaperBundle = WallpaperExportData
 
 type RuntimeApi = {
   lastError?: { message?: string }

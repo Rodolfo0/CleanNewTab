@@ -1,6 +1,7 @@
-import { ActionIcon, Button, Group, Tooltip } from "@mantine/core";
+import { ActionIcon, Button, Group, Menu, Text, Tooltip } from "@mantine/core";
 import {
   BrowsersIcon,
+  CloudArrowDownIcon,
   CloudArrowUpIcon,
   CloudCheckIcon,
   DownloadSimpleIcon,
@@ -11,6 +12,7 @@ import {
   PlusIcon,
   MoonIcon,
   SunIcon,
+  SignOutIcon,
   UploadSimpleIcon,
   XIcon,
 } from "@phosphor-icons/react";
@@ -19,11 +21,21 @@ import type { DriveSyncState } from "../storage/driveSync";
 type BoardToolbarProps = {
   colorScheme: "dark" | "light";
   isEditing: boolean;
+  driveConnected: boolean;
   driveState: DriveSyncState;
+  driveDetails: {
+    boards: number;
+    customWallpapers: number;
+    lastCheckedAt: string | null;
+    lastSavedAt: string | null;
+  };
   onAdd: () => void;
   onCancel: () => void;
   onEdit: () => void;
-  onDriveSync: () => void;
+  onDriveConnect: () => void;
+  onDriveDisconnect: () => void;
+  onDriveDownload: () => void;
+  onDriveUpload: () => void;
   onExport: () => void;
   onImport: () => void;
   onSave: () => void;
@@ -35,12 +47,17 @@ type BoardToolbarProps = {
 
 export function BoardToolbar({
   colorScheme,
+  driveConnected,
+  driveDetails,
   driveState,
   isEditing,
   onAdd,
   onCancel,
   onEdit,
-  onDriveSync,
+  onDriveConnect,
+  onDriveDisconnect,
+  onDriveDownload,
+  onDriveUpload,
   onExport,
   onImport,
   onSave,
@@ -59,27 +76,93 @@ export function BoardToolbar({
     syncing: "Sincronizando con Google Drive…",
     unsupported: "Google Drive no está disponible en este navegador",
   }[driveState];
+  const isDriveBusy = driveState === "checking" || driveState === "syncing";
+  const formatDriveDate = (value: string | null) =>
+    value
+      ? new Intl.DateTimeFormat("es-MX", {
+          dateStyle: "short",
+          timeStyle: "short",
+        }).format(new Date(value))
+      : "Aún no disponible";
 
   return (
     <Group className="absolute right-4 top-4 z-20 rounded-md border border-[#d0d5dd] bg-white p-1 shadow-sm">
-      <Tooltip label={driveLabel}>
-        <ActionIcon
-          size="lg"
-          variant={driveState === "synced" ? "light" : "default"}
-          color={driveState === "conflict" || driveState === "error" ? "red" : "blue"}
-          radius="md"
-          loading={driveState === "checking" || driveState === "syncing"}
-          disabled={driveState === "unsupported"}
-          aria-label={driveLabel}
-          onClick={onDriveSync}
-        >
-          {driveState === "synced" ? (
-            <CloudCheckIcon size={20} />
+      <Menu position="bottom-end" width={260} shadow="md" withinPortal>
+        <Menu.Target>
+          <Tooltip label={driveLabel}>
+            <ActionIcon
+              size="lg"
+              variant={driveState === "synced" ? "light" : "default"}
+              color={driveState === "conflict" || driveState === "error" ? "red" : "blue"}
+              radius="md"
+              loading={isDriveBusy}
+              disabled={driveState === "unsupported"}
+              aria-label="Abrir menú de Google Drive"
+            >
+              {driveState === "synced" ? (
+                <CloudCheckIcon size={20} />
+              ) : (
+                <CloudArrowUpIcon size={20} />
+              )}
+            </ActionIcon>
+          </Tooltip>
+        </Menu.Target>
+        <Menu.Dropdown>
+          <Menu.Label>Google Drive</Menu.Label>
+          <Text size="xs" c="dimmed" px="sm" pb="xs">
+            {driveLabel}
+          </Text>
+          {driveConnected ? (
+            <>
+              <Menu.Divider />
+              <Menu.Label>Datos guardados</Menu.Label>
+              <Text size="sm" px="sm">{driveDetails.boards} tableros</Text>
+              <Text size="sm" px="sm" pb="xs">
+                {driveDetails.customWallpapers} fondos personalizados
+              </Text>
+              <Menu.Label>Última actualización</Menu.Label>
+              <Text size="xs" px="sm">
+                Cambios guardados: {formatDriveDate(driveDetails.lastSavedAt)}
+              </Text>
+              <Text size="xs" px="sm" pb="xs">
+                Revisión de Drive: {formatDriveDate(driveDetails.lastCheckedAt)}
+              </Text>
+              <Menu.Divider />
+              <Menu.Item
+                leftSection={<CloudArrowUpIcon size={17} />}
+                disabled={isDriveBusy}
+                onClick={onDriveUpload}
+              >
+                Guardar cambios en Drive
+              </Menu.Item>
+              <Menu.Item
+                leftSection={<CloudArrowDownIcon size={17} />}
+                disabled={isDriveBusy}
+                onClick={onDriveDownload}
+              >
+                Cargar cambios desde Drive
+              </Menu.Item>
+              <Menu.Divider />
+              <Menu.Item
+                color="red"
+                leftSection={<SignOutIcon size={17} />}
+                disabled={isDriveBusy}
+                onClick={onDriveDisconnect}
+              >
+                Quitar cuenta de este dispositivo
+              </Menu.Item>
+            </>
           ) : (
-            <CloudArrowUpIcon size={20} />
+            <Menu.Item
+              leftSection={<CloudArrowUpIcon size={17} />}
+              disabled={isDriveBusy}
+              onClick={onDriveConnect}
+            >
+              Conectar con Google Drive
+            </Menu.Item>
           )}
-        </ActionIcon>
-      </Tooltip>
+        </Menu.Dropdown>
+      </Menu>
       <Tooltip label={colorScheme === "dark" ? "Modo claro" : "Modo oscuro"}>
         <ActionIcon
           size="lg"

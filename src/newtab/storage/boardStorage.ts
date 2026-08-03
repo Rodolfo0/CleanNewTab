@@ -4,6 +4,7 @@ import { isComponentThemeId, type ComponentThemeId } from '../themes/componentTh
 
 const BOARD_STORAGE_KEY = 'clean-new-tab:board:v1'
 const WORKSPACE_STORAGE_KEY = 'clean-new-tab:workspace:v1'
+const ACTIVE_SPACE_STORAGE_KEY = 'clean-new-tab:active-space:v1'
 
 export type BoardSpace = {
   id: string
@@ -24,6 +25,8 @@ export type BoardWorkspace = {
   activeSpaceId: string
   spaces: BoardSpace[]
 }
+
+export type SyncedBoardWorkspace = Pick<BoardWorkspace, 'version' | 'spaces'>
 
 export const defaultBoard: Board = {
   version: 1,
@@ -282,6 +285,38 @@ export function parseImportedWorkspace(value: unknown): BoardWorkspace | null {
   }
 }
 
+export function toSyncedWorkspace(workspace: BoardWorkspace): SyncedBoardWorkspace {
+  return {
+    version: workspace.version,
+    spaces: workspace.spaces,
+  }
+}
+
+export function parseImportedSyncedWorkspace(
+  value: unknown,
+  preferredActiveSpaceId?: string,
+): BoardWorkspace | null {
+  if (!isRecord(value) || !Array.isArray(value.spaces)) {
+    return null
+  }
+
+  const legacyActiveSpaceId =
+    typeof value.activeSpaceId === 'string' ? value.activeSpaceId : undefined
+  const fallbackSpaceId = isRecord(value.spaces[0]) && typeof value.spaces[0].id === 'string'
+    ? value.spaces[0].id
+    : ''
+
+  return parseImportedWorkspace({
+    ...value,
+    activeSpaceId:
+      (preferredActiveSpaceId && value.spaces.some(
+        (space) => isRecord(space) && space.id === preferredActiveSpaceId,
+      )
+        ? preferredActiveSpaceId
+        : legacyActiveSpaceId) ?? fallbackSpaceId,
+  })
+}
+
 export function parseBoard(value: string | null): Board {
   if (!value) {
     return defaultBoard
@@ -338,9 +373,19 @@ export const workspaceStorage = {
       return createDefaultWorkspace()
     }
 
-    const workspace = parseWorkspace(
-      window.localStorage.getItem(WORKSPACE_STORAGE_KEY),
-    )
+    const storedWorkspace = window.localStorage.getItem(WORKSPACE_STORAGE_KEY)
+    const preferredActiveSpaceId =
+      window.localStorage.getItem(ACTIVE_SPACE_STORAGE_KEY) ?? undefined
+    let workspace: BoardWorkspace | null = null
+
+    try {
+      const parsed: unknown = storedWorkspace ? JSON.parse(storedWorkspace) : null
+      workspace = parseImportedSyncedWorkspace(parsed, preferredActiveSpaceId)
+    } catch {
+      workspace = null
+    }
+
+    workspace ??= parseWorkspace(storedWorkspace)
 
     if (workspace) {
       return workspace
@@ -356,7 +401,8 @@ export const workspaceStorage = {
 
     window.localStorage.setItem(
       WORKSPACE_STORAGE_KEY,
-      JSON.stringify(workspace),
+      JSON.stringify(toSyncedWorkspace(workspace)),
     )
+    window.localStorage.setItem(ACTIVE_SPACE_STORAGE_KEY, workspace.activeSpaceId)
   },
 }

@@ -36,13 +36,14 @@ import { useWallpapers, type WallpaperExportData } from "./hooks/useSessionWallp
 import {
   createBoardSpace,
   parseImportedBoard,
-  parseImportedWorkspace,
+  parseImportedSyncedWorkspace,
   workspaceStorage,
   type BoardBackgroundMode,
   type BoardSpace,
 } from "./storage/boardStorage";
 import {
   sendDriveMessage,
+  type DriveWallpaperBundle,
   type DriveSyncState,
   type DriveWorkspaceEnvelope,
 } from "./storage/driveSync";
@@ -178,11 +179,15 @@ export function NewTab() {
   const colorScheme = useComputedColorScheme("light");
   const [workspace, setWorkspace] = useState(() => workspaceStorage.load());
   const [driveState, setDriveState] = useState<DriveSyncState>("checking");
+  const [driveConnected, setDriveConnected] = useState(false);
+  const [driveLastSavedAt, setDriveLastSavedAt] = useState<string | null>(null);
+  const [driveLastCheckedAt, setDriveLastCheckedAt] = useState<string | null>(null);
   const driveDeviceId = useRef(loadDriveDeviceId());
   const driveEnabled = useRef(false);
   const driveRevision = useRef<number | null>(null);
   const driveConflict = useRef<DriveWorkspaceEnvelope | null>(null);
   const isApplyingRemoteWorkspace = useRef(false);
+  const initialActiveSpaceId = useRef(workspace.activeSpaceId);
   const [tabIcon, setTabIcon] = useState<string | null>(loadTabIcon);
   const [tabTitle, setTabTitle] = useState(loadTabTitle);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(true);
@@ -227,6 +232,12 @@ export function NewTab() {
     priorityWallpaperIds,
     floatingWindow === "wallpapers",
   );
+  const exportWallpapersRef = useRef(exportWallpapers);
+  const importWallpapersRef = useRef(importWallpapers);
+  const syncedWorkspace = useMemo(
+    () => ({ version: workspace.version, spaces: workspace.spaces }) as const,
+    [workspace.spaces, workspace.version],
+  );
   const viewport = useViewportSize();
   const activeBoard = isEditing ? draftBoard : activeSpace.board;
   const componentThemeId = activeSpace.componentThemeId ?? "clean";
@@ -255,6 +266,11 @@ export function NewTab() {
   }, [workspace]);
 
   useEffect(() => {
+    exportWallpapersRef.current = exportWallpapers;
+    importWallpapersRef.current = importWallpapers;
+  }, [exportWallpapers, importWallpapers]);
+
+  useEffect(() => {
     let cancelled = false;
 
     void sendDriveMessage<{ connected: boolean; supported: boolean }>({
@@ -268,23 +284,42 @@ export function NewTab() {
         }
         if (!status.connected) {
           driveEnabled.current = false;
+          setDriveConnected(false);
           setDriveState("disconnected");
           return;
         }
 
         driveEnabled.current = true;
+        setDriveConnected(true);
 
         const result = await sendDriveMessage<{
           kind: "empty" | "remote";
           envelope?: DriveWorkspaceEnvelope;
+          wallpapers?: DriveWallpaperBundle;
         }>({ type: "drive-load" });
         if (cancelled) return;
+        setDriveLastCheckedAt(new Date().toISOString());
 
         const remoteWorkspace = result.envelope
-          ? parseImportedWorkspace(result.envelope.workspace)
+          ? parseImportedSyncedWorkspace(
+              result.envelope.workspace,
+              initialActiveSpaceId.current,
+            )
           : null;
         if (result.kind === "remote" && result.envelope && remoteWorkspace) {
+          if (result.wallpapers) {
+            await importWallpapersRef.current(result.wallpapers);
+          } else {
+            const localWallpapers = await exportWallpapersRef.current();
+            if (localWallpapers.customWallpapers.length > 0) {
+              await sendDriveMessage<{ ok: true }>({
+                type: "drive-save-wallpapers",
+                wallpapers: localWallpapers,
+              });
+            }
+          }
           driveRevision.current = result.envelope.revision;
+          setDriveLastSavedAt(result.envelope.updatedAt);
           isApplyingRemoteWorkspace.current = true;
           setWorkspace(remoteWorkspace);
         }
@@ -316,17 +351,20 @@ export function NewTab() {
         envelope: DriveWorkspaceEnvelope;
       }>({
         type: "drive-save",
-        workspace,
+        workspace: syncedWorkspace,
         deviceId: driveDeviceId.current,
         expectedRevision: driveRevision.current,
       })
         .then((result) => {
+          setDriveLastCheckedAt(new Date().toISOString());
           if (result.kind === "conflict") {
             driveConflict.current = result.envelope;
+            setDriveLastSavedAt(result.envelope.updatedAt);
             setDriveState("conflict");
             return;
           }
           driveRevision.current = result.envelope.revision;
+          setDriveLastSavedAt(result.envelope.updatedAt);
           driveConflict.current = null;
           setDriveState("synced");
         })
@@ -334,7 +372,7 @@ export function NewTab() {
     }, 1500);
 
     return () => window.clearTimeout(timeout);
-  }, [workspace]);
+  }, [syncedWorkspace]);
 
   useEffect(() => {
     let iconLink = document.querySelector<HTMLLinkElement>('link[rel="icon"]');
@@ -400,7 +438,7 @@ export function NewTab() {
         envelope: DriveWorkspaceEnvelope;
       }>({
         type: "drive-save",
-        workspace,
+        workspace: syncedWorkspace,
         deviceId: driveDeviceId.current,
         expectedRevision: driveRevision.current,
         force,
@@ -413,13 +451,39 @@ export function NewTab() {
       }
 
       driveRevision.current = result.envelope.revision;
+      setDriveLastCheckedAt(new Date().toISOString());
+      setDriveLastSavedAt(result.envelope.updatedAt);
       driveConflict.current = null;
       driveEnabled.current = true;
+      setDriveConnected(true);
       setDriveState("synced");
     } catch (error) {
       setDriveState("error");
       window.alert(error instanceof Error ? error.message : "No se pudo sincronizar con Drive.");
     }
+  }
+
+  async function saveWallpapersToDrive() {
+    if (!driveEnabled.current) {
+      return;
+    }
+
+    const wallpapers = await exportWallpapersRef.current();
+    await sendDriveMessage<{ ok: true }>({
+      type: "drive-save-wallpapers",
+      wallpapers,
+    });
+    setDriveLastSavedAt(new Date().toISOString());
+  }
+
+  function scheduleWallpaperDriveSave() {
+    if (!driveEnabled.current) {
+      return;
+    }
+
+    window.setTimeout(() => {
+      void saveWallpapersToDrive().catch(() => setDriveState("error"));
+    }, 100);
   }
 
   async function handleDriveSync() {
@@ -428,7 +492,10 @@ export function NewTab() {
         "Drive contiene cambios realizados en otro dispositivo. Pulsa Aceptar para usar la versión de Drive o Cancelar para reemplazarla con este dispositivo.",
       );
       if (useDrive) {
-        const remoteWorkspace = parseImportedWorkspace(driveConflict.current.workspace);
+        const remoteWorkspace = parseImportedSyncedWorkspace(
+          driveConflict.current.workspace,
+          workspace.activeSpaceId,
+        );
         if (!remoteWorkspace) {
           setDriveState("error");
           window.alert("La configuración de Drive no es válida.");
@@ -441,12 +508,17 @@ export function NewTab() {
         setDriveState("synced");
       } else {
         await saveWorkspaceToDrive(true);
+        await saveWallpapersToDrive();
       }
       return;
     }
 
     if (driveEnabled.current) {
       await saveWorkspaceToDrive();
+      await saveWallpapersToDrive().catch((error) => {
+        setDriveState("error");
+        window.alert(error instanceof Error ? error.message : "No se pudieron sincronizar los fondos.");
+      });
       return;
     }
 
@@ -455,16 +527,24 @@ export function NewTab() {
       const result = await sendDriveMessage<{
         kind: "created" | "remote";
         envelope: DriveWorkspaceEnvelope;
+        wallpapers?: DriveWallpaperBundle;
       }>({
         type: "drive-connect",
-        workspace,
+        workspace: syncedWorkspace,
+        wallpapers: await exportWallpapersRef.current(),
         deviceId: driveDeviceId.current,
       });
       driveEnabled.current = true;
+      setDriveConnected(true);
       driveRevision.current = result.envelope.revision;
+      setDriveLastCheckedAt(new Date().toISOString());
+      setDriveLastSavedAt(result.envelope.updatedAt);
 
       if (result.kind === "remote") {
-        const remoteWorkspace = parseImportedWorkspace(result.envelope.workspace);
+        const remoteWorkspace = parseImportedSyncedWorkspace(
+          result.envelope.workspace,
+          workspace.activeSpaceId,
+        );
         if (!remoteWorkspace) {
           throw new Error("La configuración guardada en Drive no es válida.");
         }
@@ -472,18 +552,100 @@ export function NewTab() {
           "Ya existe una configuración de Clean New Tab en Drive. Pulsa Aceptar para usarla en este dispositivo o Cancelar para reemplazarla con la configuración local.",
         );
         if (useDrive) {
+          if (result.wallpapers) {
+            const wallpaperResult = await importWallpapersRef.current(result.wallpapers);
+            if (!wallpaperResult.ok) {
+              throw new Error(wallpaperResult.message ?? "No se pudieron cargar los fondos de Drive.");
+            }
+          }
           isApplyingRemoteWorkspace.current = true;
           setWorkspace(remoteWorkspace);
         } else {
           await saveWorkspaceToDrive(true);
+          await saveWallpapersToDrive();
           return;
         }
       }
       setDriveState("synced");
     } catch (error) {
       driveEnabled.current = false;
+      setDriveConnected(false);
       setDriveState("error");
       window.alert(error instanceof Error ? error.message : "No se pudo conectar con Drive.");
+    }
+  }
+
+  async function handleDriveDownload() {
+    if (
+      !window.confirm(
+        "¿Cargar la copia de Drive? Los cambios locales que aún no se hayan sincronizado serán reemplazados.",
+      )
+    ) {
+      return;
+    }
+
+    setDriveState("syncing");
+    try {
+      const result = await sendDriveMessage<{
+        kind: "empty" | "remote";
+        envelope?: DriveWorkspaceEnvelope;
+        wallpapers?: DriveWallpaperBundle;
+      }>({ type: "drive-load" });
+      setDriveLastCheckedAt(new Date().toISOString());
+
+      if (result.kind !== "remote" || !result.envelope) {
+        setDriveState("synced");
+        window.alert("Drive todavía no contiene una configuración guardada.");
+        return;
+      }
+
+      const remoteWorkspace = parseImportedSyncedWorkspace(
+        result.envelope.workspace,
+        workspace.activeSpaceId,
+      );
+      if (!remoteWorkspace) {
+        throw new Error("La configuración guardada en Drive no es válida.");
+      }
+
+      if (result.wallpapers) {
+        const wallpaperResult = await importWallpapersRef.current(result.wallpapers);
+        if (!wallpaperResult.ok) {
+          throw new Error(wallpaperResult.message ?? "No se pudieron cargar los fondos de Drive.");
+        }
+      }
+
+      driveRevision.current = result.envelope.revision;
+      setDriveLastSavedAt(result.envelope.updatedAt);
+      driveConflict.current = null;
+      isApplyingRemoteWorkspace.current = true;
+      setWorkspace(remoteWorkspace);
+      setDriveState("synced");
+    } catch (error) {
+      setDriveState("error");
+      window.alert(error instanceof Error ? error.message : "No se pudo cargar la copia de Drive.");
+    }
+  }
+
+  async function handleDriveDisconnect() {
+    if (
+      !window.confirm(
+        "¿Quitar la cuenta de Google de este dispositivo? Tus tableros locales y la copia guardada en Drive no se eliminarán.",
+      )
+    ) {
+      return;
+    }
+
+    setDriveState("syncing");
+    try {
+      await sendDriveMessage<{ ok: true }>({ type: "drive-disconnect" });
+      driveEnabled.current = false;
+      setDriveConnected(false);
+      driveRevision.current = null;
+      driveConflict.current = null;
+      setDriveState("disconnected");
+    } catch (error) {
+      setDriveState("error");
+      window.alert(error instanceof Error ? error.message : "No se pudo quitar la cuenta.");
     }
   }
 
@@ -755,6 +917,7 @@ export function NewTab() {
         ...currentValue,
         [activeSpace.id]: result.wallpaperId ?? null,
       }));
+      scheduleWallpaperDriveSave();
     }
 
     return result;
@@ -848,6 +1011,7 @@ export function NewTab() {
 
       return nextValue;
     });
+    scheduleWallpaperDriveSave();
 
     return true;
   }
@@ -1510,6 +1674,13 @@ export function NewTab() {
         ) : null}
         <BoardToolbar
           colorScheme={colorScheme}
+          driveConnected={driveConnected}
+          driveDetails={{
+            boards: workspace.spaces.length,
+            customWallpapers: wallpapers.filter((item) => item.isCustom).length,
+            lastCheckedAt: driveLastCheckedAt,
+            lastSavedAt: driveLastSavedAt,
+          }}
           driveState={driveState}
           isEditing={isEditing}
           onAdd={() =>
@@ -1517,7 +1688,10 @@ export function NewTab() {
           }
           onCancel={cancelEditing}
           onEdit={startEditing}
-          onDriveSync={() => void handleDriveSync()}
+          onDriveConnect={() => void handleDriveSync()}
+          onDriveDisconnect={() => void handleDriveDisconnect()}
+          onDriveDownload={() => void handleDriveDownload()}
+          onDriveUpload={() => void handleDriveSync()}
           onExport={() => void exportBoard()}
           onImport={requestImportBoard}
           onSave={saveEditing}
