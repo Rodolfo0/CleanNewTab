@@ -11,6 +11,106 @@ const driveFileName = "clean-new-tab-workspace-v1.json";
 const driveWallpaperFileName = "clean-new-tab-wallpapers-v1.json";
 const driveScope = "https://www.googleapis.com/auth/drive.appdata";
 const driveStateKey = "clean-new-tab:drive-state:v1";
+const firefoxGoogleAuthKey = "clean-new-tab:firefox-google-auth:v1";
+const firefoxGoogleClientId =
+  "413769723468-bd0fr5kit5iuelnlmf82or7dhbhc6i6i.apps.googleusercontent.com";
+
+function createRandomUrlSafeValue(size = 32) {
+  const bytes = crypto.getRandomValues(new Uint8Array(size));
+  return Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join("");
+}
+
+async function getFirefoxAuthState() {
+  const stored = await extensionApi.storage.local.get(firefoxGoogleAuthKey);
+  return stored[firefoxGoogleAuthKey] ?? null;
+}
+
+async function setFirefoxAuthState(value) {
+  await extensionApi.storage.local.set({ [firefoxGoogleAuthKey]: value });
+}
+
+async function clearFirefoxAuthState() {
+  await extensionApi.storage.local.remove(firefoxGoogleAuthKey);
+}
+
+function getFirefoxLoopbackRedirect() {
+  const generatedRedirect = extensionApi.identity.getRedirectURL();
+  const subdomain = new URL(generatedRedirect).hostname.split(".")[0];
+  if (!subdomain) {
+    throw new Error("Firefox no pudo generar la URL de retorno de OAuth.");
+  }
+  return `http://127.0.0.1/mozoauth2/${subdomain}`;
+}
+
+async function authorizeFirefoxDrive(interactive) {
+  const redirectUri = getFirefoxLoopbackRedirect();
+  const state = createRandomUrlSafeValue();
+  const authorizationUrl = new URL("https://accounts.google.com/o/oauth2/v2/auth");
+  authorizationUrl.search = new URLSearchParams({
+    client_id: firefoxGoogleClientId,
+    include_granted_scopes: "true",
+    prompt: interactive ? "consent" : "none",
+    redirect_uri: redirectUri,
+    response_type: "token",
+    scope: driveScope,
+    state,
+  }).toString();
+
+  const resultUrl = await extensionApi.identity.launchWebAuthFlow({
+    interactive,
+    url: authorizationUrl.toString(),
+  });
+  if (!resultUrl) {
+    throw new Error("Google no devolvió el resultado de la autorización.");
+  }
+
+  const result = new URL(resultUrl);
+  const response = new URLSearchParams(result.hash.slice(1));
+  if (response.get("state") !== state) {
+    throw new Error("La respuesta OAuth no coincide con la solicitud original.");
+  }
+  const oauthError = response.get("error");
+  if (oauthError) {
+    throw new Error(
+      oauthError === "access_denied"
+        ? "Se canceló el acceso a Google Drive."
+        : `Google rechazó la autorización: ${oauthError}.`,
+    );
+  }
+  const accessToken = response.get("access_token");
+  if (!accessToken) {
+    throw new Error("Google no devolvió un token de acceso.");
+  }
+
+  const authState = {
+    accessToken,
+    expiresAt: Date.now() + Number(response.get("expires_in") ?? 3600) * 1000,
+  };
+  await setFirefoxAuthState(authState);
+  return authState.accessToken;
+}
+
+async function getFirefoxDriveToken(interactive) {
+  const authState = await getFirefoxAuthState();
+  if (
+    authState?.accessToken &&
+    typeof authState.expiresAt === "number" &&
+    authState.expiresAt > Date.now() + 60_000
+  ) {
+    return authState.accessToken;
+  }
+
+  try {
+    return await authorizeFirefoxDrive(interactive);
+  } catch (error) {
+    await clearFirefoxAuthState();
+    await setStoredDriveState({ connected: false });
+    if (interactive) {
+      throw error;
+    }
+    throw new Error("Vuelve a conectar Google Drive.");
+  }
+}
 
 async function getStoredDriveState() {
   const stored = await extensionApi.storage.local.get(driveStateKey);
@@ -26,7 +126,12 @@ async function setStoredDriveState(patch) {
 
 async function getDriveToken(interactive) {
   if (typeof extensionApi.identity?.getAuthToken !== "function") {
-    throw new Error("La sincronización con Drive todavía no está disponible en este navegador.");
+    if (typeof extensionApi.identity?.launchWebAuthFlow === "function") {
+      const token = await getFirefoxDriveToken(interactive);
+      await setStoredDriveState({ connected: true });
+      return token;
+    }
+    throw new Error("La sincronización con Drive no está disponible en este navegador.");
   }
 
   const result = await extensionApi.identity.getAuthToken({
@@ -53,7 +158,11 @@ async function driveFetch(token, url, init = {}) {
   });
 
   if (response.status === 401) {
-    await extensionApi.identity.removeCachedAuthToken({ token });
+    if (typeof extensionApi.identity?.removeCachedAuthToken === "function") {
+      await extensionApi.identity.removeCachedAuthToken({ token });
+    } else {
+      await clearFirefoxAuthState();
+    }
     await setStoredDriveState({ connected: false });
     throw new Error("La autorización de Drive expiró. Vuelve a conectar Drive.");
   }
@@ -281,6 +390,8 @@ async function saveDrive(workspace, deviceId, expectedRevision, force) {
 async function disconnectDrive() {
   if (typeof extensionApi.identity?.clearAllCachedAuthTokens === "function") {
     await extensionApi.identity.clearAllCachedAuthTokens();
+  } else {
+    await clearFirefoxAuthState();
   }
   await setStoredDriveState({ connected: false, fileId: undefined });
   return { ok: true };
@@ -288,7 +399,9 @@ async function disconnectDrive() {
 
 async function handleDriveMessage(message) {
   if (message.type === "drive-status") {
-    const supported = typeof extensionApi.identity?.getAuthToken === "function";
+    const supported =
+      typeof extensionApi.identity?.getAuthToken === "function" ||
+      typeof extensionApi.identity?.launchWebAuthFlow === "function";
     if (!supported) {
       return { ok: true, connected: false, supported: false };
     }
