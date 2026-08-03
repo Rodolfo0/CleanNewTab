@@ -186,19 +186,41 @@ jobs:
             echo "Skipping ZIP upload and submitting the existing Chrome draft."
           fi
 
-          publish_response="$(
-            curl --fail-with-body --silent --show-error \
+          publish_body="$(mktemp)"
+          publish_status="$(
+            curl --silent --show-error \
+              --output "$publish_body" \
+              --write-out '%{http_code}' \
               --request POST \
               --header "Authorization: Bearer $access_token" \
+              --header "Content-Type: application/json" \
+              --data '{"publishType":"DEFAULT_PUBLISH"}' \
               "https://chromewebstore.googleapis.com/v2/$item_name:publish"
           )"
-          publish_state="$(jq -r '.state // empty' <<<"$publish_response")"
-          if [[ -z "$publish_state" ]]; then
-            echo "Chrome did not confirm the submission state." >&2
-            exit 1
-          fi
 
-          echo "Chrome submission state: $publish_state"
+          if [[ "$publish_status" == "200" ]]; then
+            publish_state="$(jq -r '.state // empty' "$publish_body")"
+            if [[ -z "$publish_state" ]]; then
+              echo "Chrome did not confirm the submission state." >&2
+              exit 1
+            fi
+            echo "Chrome submission state: $publish_state"
+          else
+            status_response="$(
+              curl --fail-with-body --silent --show-error \
+                --header "Authorization: Bearer $access_token" \
+                "https://chromewebstore.googleapis.com/v2/$item_name:fetchStatus"
+            )"
+            submitted_state="$(jq -r '.submittedItemRevisionStatus.state // empty' <<<"$status_response")"
+            if [[ -n "$submitted_state" ]]; then
+              echo "Chrome returned $publish_status because the version is already submitted."
+              echo "Chrome submission state: $submitted_state"
+            else
+              publish_error="$(jq -r '.error.message // .message // "No error description returned."' "$publish_body")"
+              echo "Chrome publish failed ($publish_status): $publish_error" >&2
+              exit 1
+            fi
+          fi
 
   publish-firefox:
     name: Publish to Mozilla Add-ons
