@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.4.0](https://github.com/Rodolfo0/CustomNewTab/compare/clean-new-tab-v0.3.1...clean-new-tab-v0.4.0) (2026-08-03)
+
+
+### Features
+
+* Add Firefox Google Drive sync support ([d2afcb3](https://github.com/Rodolfo0/CustomNewTab/commit/d2afcb3c1d2679d3d2c3379741af20227a20f0f9))
+* Sync wallpapers with Google Drive and drive UI ([476f788](https://github.com/Rodolfo0/CustomNewTab/commit/476f788c66a3ded6107908b95c811a342fd73201))
+
+
+### Bug Fixes
+
+* Handle Chrome publish non-200 responses ([a1a1353](https://github.com/Rodolfo0/CustomNewTab/commit/a1a135344a54e959bf91a84d97bdf71d985b32ed))
+
 ## [0.3.1](https://github.com/Rodolfo0/CustomNewTab/compare/clean-new-tab-v0.3.0...clean-new-tab-v0.3.1) (2026-08-03)
 
 
