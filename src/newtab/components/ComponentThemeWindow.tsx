@@ -57,7 +57,7 @@ export function ComponentThemeWindow({
 
     window.requestAnimationFrame(() => {
       presetRefs.current[themeId]?.scrollIntoView({
-        behavior: "smooth",
+        behavior: "auto",
         block: "nearest",
         inline: "center",
       });

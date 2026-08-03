@@ -1,6 +1,8 @@
 import { ActionIcon, Button, Group, Tooltip } from "@mantine/core";
 import {
   BrowsersIcon,
+  CloudArrowUpIcon,
+  CloudCheckIcon,
   DownloadSimpleIcon,
   FloppyDiskIcon,
   ImageSquareIcon,
@@ -12,13 +14,16 @@ import {
   UploadSimpleIcon,
   XIcon,
 } from "@phosphor-icons/react";
+import type { DriveSyncState } from "../storage/driveSync";
 
 type BoardToolbarProps = {
   colorScheme: "dark" | "light";
   isEditing: boolean;
+  driveState: DriveSyncState;
   onAdd: () => void;
   onCancel: () => void;
   onEdit: () => void;
+  onDriveSync: () => void;
   onExport: () => void;
   onImport: () => void;
   onSave: () => void;
@@ -30,10 +35,12 @@ type BoardToolbarProps = {
 
 export function BoardToolbar({
   colorScheme,
+  driveState,
   isEditing,
   onAdd,
   onCancel,
   onEdit,
+  onDriveSync,
   onExport,
   onImport,
   onSave,
@@ -42,8 +49,37 @@ export function BoardToolbar({
   onToggleColorScheme,
   onWallpapers,
 }: BoardToolbarProps) {
+  const driveLabel = {
+    checking: "Comprobando Google Drive…",
+    conflict: "Conflicto con Google Drive",
+    disconnected: "Sincronizar mi configuración con Drive",
+    error: "Reintentar sincronización con Drive",
+    pending: "Cambios pendientes de sincronizar",
+    synced: "Configuración sincronizada con Drive",
+    syncing: "Sincronizando con Google Drive…",
+    unsupported: "Google Drive no está disponible en este navegador",
+  }[driveState];
+
   return (
     <Group className="absolute right-4 top-4 z-20 rounded-md border border-[#d0d5dd] bg-white p-1 shadow-sm">
+      <Tooltip label={driveLabel}>
+        <ActionIcon
+          size="lg"
+          variant={driveState === "synced" ? "light" : "default"}
+          color={driveState === "conflict" || driveState === "error" ? "red" : "blue"}
+          radius="md"
+          loading={driveState === "checking" || driveState === "syncing"}
+          disabled={driveState === "unsupported"}
+          aria-label={driveLabel}
+          onClick={onDriveSync}
+        >
+          {driveState === "synced" ? (
+            <CloudCheckIcon size={20} />
+          ) : (
+            <CloudArrowUpIcon size={20} />
+          )}
+        </ActionIcon>
+      </Tooltip>
       <Tooltip label={colorScheme === "dark" ? "Modo claro" : "Modo oscuro"}>
         <ActionIcon
           size="lg"

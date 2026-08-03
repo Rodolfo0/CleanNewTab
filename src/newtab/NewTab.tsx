@@ -36,10 +36,16 @@ import { useWallpapers, type WallpaperExportData } from "./hooks/useSessionWallp
 import {
   createBoardSpace,
   parseImportedBoard,
+  parseImportedWorkspace,
   workspaceStorage,
   type BoardBackgroundMode,
   type BoardSpace,
 } from "./storage/boardStorage";
+import {
+  sendDriveMessage,
+  type DriveSyncState,
+  type DriveWorkspaceEnvelope,
+} from "./storage/driveSync";
 import {
   getComponentTheme,
   isComponentThemeId,
@@ -117,6 +123,18 @@ const defaultBackgroundMode: BoardBackgroundMode = "image-rotating";
 const tabIconStorageKey = "clean-new-tab:tab-icon:v1";
 const tabTitleStorageKey = "clean-new-tab:tab-title:v1";
 const defaultTabTitle = "Nueva pestaña";
+const driveDeviceIdKey = "clean-new-tab:drive-device-id:v1";
+
+function loadDriveDeviceId() {
+  const existing = window.localStorage.getItem(driveDeviceIdKey);
+  if (existing) {
+    return existing;
+  }
+
+  const deviceId = crypto.randomUUID();
+  window.localStorage.setItem(driveDeviceIdKey, deviceId);
+  return deviceId;
+}
 
 function loadTabIcon() {
   try {
@@ -159,6 +177,12 @@ export function NewTab() {
   const { setColorScheme } = useMantineColorScheme({ keepTransitions: true });
   const colorScheme = useComputedColorScheme("light");
   const [workspace, setWorkspace] = useState(() => workspaceStorage.load());
+  const [driveState, setDriveState] = useState<DriveSyncState>("checking");
+  const driveDeviceId = useRef(loadDriveDeviceId());
+  const driveEnabled = useRef(false);
+  const driveRevision = useRef<number | null>(null);
+  const driveConflict = useRef<DriveWorkspaceEnvelope | null>(null);
+  const isApplyingRemoteWorkspace = useRef(false);
   const [tabIcon, setTabIcon] = useState<string | null>(loadTabIcon);
   const [tabTitle, setTabTitle] = useState(loadTabTitle);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(true);
@@ -231,6 +255,88 @@ export function NewTab() {
   }, [workspace]);
 
   useEffect(() => {
+    let cancelled = false;
+
+    void sendDriveMessage<{ connected: boolean; supported: boolean }>({
+      type: "drive-status",
+    })
+      .then(async (status) => {
+        if (cancelled) return;
+        if (!status.supported) {
+          setDriveState("unsupported");
+          return;
+        }
+        if (!status.connected) {
+          driveEnabled.current = false;
+          setDriveState("disconnected");
+          return;
+        }
+
+        driveEnabled.current = true;
+
+        const result = await sendDriveMessage<{
+          kind: "empty" | "remote";
+          envelope?: DriveWorkspaceEnvelope;
+        }>({ type: "drive-load" });
+        if (cancelled) return;
+
+        const remoteWorkspace = result.envelope
+          ? parseImportedWorkspace(result.envelope.workspace)
+          : null;
+        if (result.kind === "remote" && result.envelope && remoteWorkspace) {
+          driveRevision.current = result.envelope.revision;
+          isApplyingRemoteWorkspace.current = true;
+          setWorkspace(remoteWorkspace);
+        }
+        setDriveState("synced");
+      })
+      .catch(() => {
+        if (!cancelled) setDriveState("error");
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (isApplyingRemoteWorkspace.current) {
+      isApplyingRemoteWorkspace.current = false;
+      return;
+    }
+    if (driveRevision.current === null || !driveEnabled.current) {
+      return;
+    }
+
+    setDriveState("pending");
+    const timeout = window.setTimeout(() => {
+      setDriveState("syncing");
+      void sendDriveMessage<{
+        kind: "saved" | "conflict";
+        envelope: DriveWorkspaceEnvelope;
+      }>({
+        type: "drive-save",
+        workspace,
+        deviceId: driveDeviceId.current,
+        expectedRevision: driveRevision.current,
+      })
+        .then((result) => {
+          if (result.kind === "conflict") {
+            driveConflict.current = result.envelope;
+            setDriveState("conflict");
+            return;
+          }
+          driveRevision.current = result.envelope.revision;
+          driveConflict.current = null;
+          setDriveState("synced");
+        })
+        .catch(() => setDriveState("error"));
+    }, 1500);
+
+    return () => window.clearTimeout(timeout);
+  }, [workspace]);
+
+  useEffect(() => {
     let iconLink = document.querySelector<HTMLLinkElement>('link[rel="icon"]');
 
     if (!iconLink) {
@@ -285,12 +391,101 @@ export function NewTab() {
 
   const viewportWidth = viewport.width || CANVAS_WIDTH;
   const viewportHeight = viewport.height || CANVAS_HEIGHT;
-  const canvasHeight = Math.max(
-    CANVAS_HEIGHT,
-    ...activeBoard.items.map(
-      (item) => getViewportTop(item.layout, viewportHeight) + item.layout.height + 32,
-    ),
-  );
+
+  async function saveWorkspaceToDrive(force = false) {
+    setDriveState("syncing");
+    try {
+      const result = await sendDriveMessage<{
+        kind: "saved" | "conflict";
+        envelope: DriveWorkspaceEnvelope;
+      }>({
+        type: "drive-save",
+        workspace,
+        deviceId: driveDeviceId.current,
+        expectedRevision: driveRevision.current,
+        force,
+      });
+
+      if (result.kind === "conflict") {
+        driveConflict.current = result.envelope;
+        setDriveState("conflict");
+        return;
+      }
+
+      driveRevision.current = result.envelope.revision;
+      driveConflict.current = null;
+      driveEnabled.current = true;
+      setDriveState("synced");
+    } catch (error) {
+      setDriveState("error");
+      window.alert(error instanceof Error ? error.message : "No se pudo sincronizar con Drive.");
+    }
+  }
+
+  async function handleDriveSync() {
+    if (driveState === "conflict" && driveConflict.current) {
+      const useDrive = window.confirm(
+        "Drive contiene cambios realizados en otro dispositivo. Pulsa Aceptar para usar la versión de Drive o Cancelar para reemplazarla con este dispositivo.",
+      );
+      if (useDrive) {
+        const remoteWorkspace = parseImportedWorkspace(driveConflict.current.workspace);
+        if (!remoteWorkspace) {
+          setDriveState("error");
+          window.alert("La configuración de Drive no es válida.");
+          return;
+        }
+        driveRevision.current = driveConflict.current.revision;
+        driveConflict.current = null;
+        isApplyingRemoteWorkspace.current = true;
+        setWorkspace(remoteWorkspace);
+        setDriveState("synced");
+      } else {
+        await saveWorkspaceToDrive(true);
+      }
+      return;
+    }
+
+    if (driveEnabled.current) {
+      await saveWorkspaceToDrive();
+      return;
+    }
+
+    setDriveState("syncing");
+    try {
+      const result = await sendDriveMessage<{
+        kind: "created" | "remote";
+        envelope: DriveWorkspaceEnvelope;
+      }>({
+        type: "drive-connect",
+        workspace,
+        deviceId: driveDeviceId.current,
+      });
+      driveEnabled.current = true;
+      driveRevision.current = result.envelope.revision;
+
+      if (result.kind === "remote") {
+        const remoteWorkspace = parseImportedWorkspace(result.envelope.workspace);
+        if (!remoteWorkspace) {
+          throw new Error("La configuración guardada en Drive no es válida.");
+        }
+        const useDrive = window.confirm(
+          "Ya existe una configuración de Clean New Tab en Drive. Pulsa Aceptar para usarla en este dispositivo o Cancelar para reemplazarla con la configuración local.",
+        );
+        if (useDrive) {
+          isApplyingRemoteWorkspace.current = true;
+          setWorkspace(remoteWorkspace);
+        } else {
+          await saveWorkspaceToDrive(true);
+          return;
+        }
+      }
+      setDriveState("synced");
+    } catch (error) {
+      driveEnabled.current = false;
+      setDriveState("error");
+      window.alert(error instanceof Error ? error.message : "No se pudo conectar con Drive.");
+    }
+  }
 
   function startEditing() {
     setDraftBoard(copyBoard(activeSpace.board));
@@ -1277,7 +1472,7 @@ export function NewTab() {
   ]);
 
   return (
-    <main className="min-h-screen w-screen bg-[#f7f8fa] text-[#171717]">
+    <main className="h-screen w-full overflow-hidden bg-[#f7f8fa] text-[#171717]">
       <SpacesSidebar
         activeSpaceId={workspace.activeSpaceId}
         isCollapsed={isSidebarCollapsed}
@@ -1291,10 +1486,8 @@ export function NewTab() {
         onUpdateSpace={updateSpace}
       />
       <section
-        className="relative min-h-screen w-screen overflow-auto"
+        className="relative h-full w-full overflow-hidden overscroll-none"
         style={{
-          minHeight: "100vh",
-          height: `max(100vh, ${canvasHeight}px)`,
           backgroundColor:
             backgroundMode === "color-fixed"
               ? backgroundColor
@@ -1317,12 +1510,14 @@ export function NewTab() {
         ) : null}
         <BoardToolbar
           colorScheme={colorScheme}
+          driveState={driveState}
           isEditing={isEditing}
           onAdd={() =>
             setFloatingWindow((current) => (current === "add" ? null : "add"))
           }
           onCancel={cancelEditing}
           onEdit={startEditing}
+          onDriveSync={() => void handleDriveSync()}
           onExport={() => void exportBoard()}
           onImport={requestImportBoard}
           onSave={saveEditing}

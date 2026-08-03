@@ -48,7 +48,10 @@
 
 html,
 body {
-  min-height: 100%;
+  height: 100%;
+  overflow: hidden;
+  overscroll-behavior: none;
+  scroll-behavior: auto;
 }
 
 body {
@@ -59,8 +62,10 @@ body {
 }
 
 #root {
-  min-height: 100vh;
-  width: 100vw;
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+  overscroll-behavior: none;
 }
 
 :root[data-component-theme] [class~="bg-white"],

@@ -1,17 +1,10 @@
 import { useRef, useState } from "react";
+
 import {
-  ActionIcon,
-  Button,
-  ColorInput,
-  Group,
-  Loader,
-  Modal,
-  SegmentedControl,
-  Stack,
-  Text,
-  Tooltip,
+    ActionIcon, Button, ColorInput, Group, Loader, Modal, SegmentedControl, Stack, Text, Tooltip
 } from "@mantine/core";
 import { CheckIcon, TrashIcon, UploadSimpleIcon } from "@phosphor-icons/react";
+
 import type { Wallpaper } from "../hooks/useSessionWallpaper";
 import type { BoardBackgroundMode } from "../storage/boardStorage";
 
@@ -75,18 +68,34 @@ export function WallpaperWindow({
 
     try {
       const result = await onAdd(file);
-      setNotice(result.ok ? null : result.message ?? "No se pudo guardar la imagen.");
+      setNotice(
+        result.ok ? null : (result.message ?? "No se pudo guardar la imagen."),
+      );
     } finally {
       setIsAdding(false);
     }
   }
 
   return (
-    <Modal opened={opened} onClose={onClose} title="Fondos de pantalla" size={760} centered>
-      <Stack gap="md" style={{ height: "min(640px, calc(100vh - 160px))" }}>
+    <Modal
+      opened={opened}
+      onClose={onClose}
+      title="Fondos de pantalla"
+      size={760}
+      centered
+      styles={{
+        content: { maxHeight: "calc(100dvh - 32px)", overflow: "hidden" },
+        body: { minHeight: 0, overflow: "hidden" },
+      }}
+    >
+      <Stack
+        gap="sm"
+        style={{ height: "min(640px, calc(100dvh - 112px))", minHeight: 0 }}
+      >
         <SegmentedControl
           fullWidth
           value={backgroundMode}
+          className="shrink-0 p-2"
           data={[
             { label: "Fijo", value: "image-fixed" },
             { label: "Cambiante", value: "image-rotating" },
@@ -98,8 +107,8 @@ export function WallpaperWindow({
           }}
         />
 
-        <Group justify="space-between" align="center">
-          <Text size="sm" className="text-[#667085]">
+        <Group justify="space-between" align="center" className="shrink-0">
+          <Text size="sm" className="min-w-0 flex-1 text-[#667085]">
             {backgroundMode === "image-fixed"
               ? "Selecciona un fondo fijo para este espacio."
               : backgroundMode === "image-rotating"
@@ -109,6 +118,7 @@ export function WallpaperWindow({
           {usesImages ? (
             <Button
               size="sm"
+              className="shrink-0"
               loading={isAdding}
               leftSection={<UploadSimpleIcon size={17} />}
               onClick={() => inputRef.current?.click()}
@@ -128,7 +138,11 @@ export function WallpaperWindow({
           />
         </Group>
 
-        {notice ? <Text size="sm" className="text-[#c92a2a]">{notice}</Text> : null}
+        {notice ? (
+          <Text size="sm" className="text-[#c92a2a]">
+            {notice}
+          </Text>
+        ) : null}
 
         {backgroundMode === "color-fixed" ? (
           <div className="min-h-0 flex-1 overflow-y-auto pr-1">
@@ -145,7 +159,10 @@ export function WallpaperWindow({
                   const isSelected = normalizedBackgroundColor === preset.color;
 
                   return (
-                    <div key={preset.color} className="group relative overflow-hidden rounded-md border border-[#d0d5dd] bg-white">
+                    <div
+                      key={preset.color}
+                      className="group relative overflow-hidden rounded-md border border-[#d0d5dd] bg-white"
+                    >
                       <button
                         type="button"
                         className="relative block aspect-video w-full transition-opacity"
@@ -162,8 +179,17 @@ export function WallpaperWindow({
                           </span>
                         ) : null}
                       </button>
-                      <Group justify="space-between" wrap="nowrap" gap={6} className="min-w-0 px-2 py-1.5">
-                        <Text size="xs" fw={700} className="truncate text-[#344054]">
+                      <Group
+                        justify="space-between"
+                        wrap="nowrap"
+                        gap={6}
+                        className="min-w-0 px-2 py-1.5"
+                      >
+                        <Text
+                          size="xs"
+                          fw={700}
+                          className="truncate text-[#344054]"
+                        >
                           {preset.name}
                         </Text>
                         <Text size="xs" className="shrink-0 text-[#667085]">
@@ -177,15 +203,18 @@ export function WallpaperWindow({
             </Stack>
           </div>
         ) : (
-          <div className="grid min-h-0 flex-1 grid-cols-2 gap-3 overflow-y-auto pr-1 sm:grid-cols-3">
+          <div className="grid min-h-0 flex-1 auto-rows-max grid-cols-2 content-start gap-3 overflow-y-auto pr-1 sm:grid-cols-3">
             {wallpapers.map((wallpaper) => {
               const isSelected = selectedIdSet.has(wallpaper.id);
 
               return (
-                <div key={wallpaper.id} className="group relative overflow-hidden rounded-md border border-[#d0d5dd] bg-white">
+                <div
+                  key={wallpaper.id}
+                  className="group relative flex min-w-0 flex-col overflow-hidden rounded-md border border-[#d0d5dd] bg-white"
+                >
                   <button
                     type="button"
-                    className={`relative block aspect-video w-full bg-cover bg-center transition-opacity ${
+                    className={`relative aspect-video w-full bg-cover bg-center transition-opacity ${
                       isSelected ? "opacity-100" : "opacity-45"
                     }`}
                     style={{
@@ -196,7 +225,9 @@ export function WallpaperWindow({
                     }}
                     onClick={() => {
                       if (!onToggle(wallpaper.id)) {
-                        setNotice("Debe quedar al menos un fondo seleccionado.");
+                        setNotice(
+                          "Debe quedar al menos un fondo seleccionado.",
+                        );
                       } else {
                         setNotice(null);
                       }
@@ -221,8 +252,17 @@ export function WallpaperWindow({
                       </span>
                     ) : null}
                   </button>
-                  <Group justify="space-between" wrap="nowrap" gap={6} className="min-w-0 px-2 py-1.5">
-                    <Text size="xs" fw={700} className="truncate text-[#344054]">
+                  <Group
+                    justify="space-between"
+                    wrap="nowrap"
+                    gap={6}
+                    className="min-w-0 px-2 py-1.5"
+                  >
+                    <Text
+                      size="xs"
+                      fw={700}
+                      className="truncate text-[#344054]"
+                    >
                       {wallpaper.name}
                     </Text>
                     {wallpaper.isCustom ? (

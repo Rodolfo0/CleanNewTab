@@ -3,8 +3,15 @@
   "name": "Clean New Tab",
   "description": "A clean replacement for the browser new tab page.",
   "version": "0.2.0",
+  "permissions": [
+    "identity",
+    "storage"
+  ],
   "optional_permissions": [
     "history"
+  ],
+  "host_permissions": [
+    "https://www.googleapis.com/*"
   ],
   "optional_host_permissions": [
     "https://suggestqueries.google.com/*",
@@ -15,6 +22,10 @@
   ],
   "background": {
     "service_worker": "background.js"
+  },
+  "oauth2": {
+    "client_id": "413769723468-i098drsav8f8le6l66jiufeg5ob0ftb5.apps.googleusercontent.com",
+    "scopes": ["https://www.googleapis.com/auth/drive.appdata"]
   },
   "chrome_url_overrides": {
     "newtab": "index.html"

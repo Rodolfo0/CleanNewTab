@@ -236,7 +236,7 @@ function createDefaultWorkspace(board = defaultBoard): BoardWorkspace {
   }
 }
 
-function parseWorkspace(value: string | null): BoardWorkspace | null {
+export function parseWorkspace(value: string | null): BoardWorkspace | null {
   if (!value) {
     return null
   }
@@ -272,6 +272,14 @@ function parseWorkspace(value: string | null): BoardWorkspace | null {
   }
 
   return null
+}
+
+export function parseImportedWorkspace(value: unknown): BoardWorkspace | null {
+  try {
+    return parseWorkspace(JSON.stringify(value))
+  } catch {
+    return null
+  }
 }
 
 export function parseBoard(value: string | null): Board {
