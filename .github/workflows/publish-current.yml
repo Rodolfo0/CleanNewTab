@@ -193,6 +193,8 @@ jobs:
               fi
               upload_error="$(jq -r '.error.message // .message // "No error description returned."' "$upload_body")"
               echo "Chrome upload failed ($upload_status): $upload_error" >&2
+              echo "Chrome upload response with additional details:" >&2
+              jq . "$upload_body" >&2 || sed 's/^/  /' "$upload_body" >&2
               exit 1
             fi
 
