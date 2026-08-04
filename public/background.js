@@ -14,10 +14,29 @@ const driveStateKey = "clean-new-tab:drive-state:v1";
 const firefoxGoogleAuthKey = "clean-new-tab:firefox-google-auth:v1";
 const firefoxGoogleClientId =
   "413769723468-bd0fr5kit5iuelnlmf82or7dhbhc6i6i.apps.googleusercontent.com";
+const firefoxOAuthBrokerUrl = "__FIREFOX_OAUTH_BROKER_URL__";
+
+function encodeBase64Url(bytes) {
+  let binary = "";
+  bytes.forEach((byte) => {
+    binary += String.fromCharCode(byte);
+  });
+  return btoa(binary)
+    .replaceAll("+", "-")
+    .replaceAll("/", "_")
+    .replace(/=+$/, "");
+}
 
 function createRandomUrlSafeValue(size = 32) {
-  const bytes = crypto.getRandomValues(new Uint8Array(size));
-  return Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join("");
+  return encodeBase64Url(crypto.getRandomValues(new Uint8Array(size)));
+}
+
+async function createCodeChallenge(verifier) {
+  const digest = await crypto.subtle.digest(
+    "SHA-256",
+    new TextEncoder().encode(verifier),
+  );
+  return encodeBase64Url(new Uint8Array(digest));
 }
 
 async function getFirefoxAuthState() {
@@ -42,22 +61,51 @@ function getFirefoxLoopbackRedirect() {
   return `http://127.0.0.1/mozoauth2/${subdomain}`;
 }
 
-async function authorizeFirefoxDrive(interactive) {
+function getFirefoxOAuthBrokerUrl() {
+  if (firefoxOAuthBrokerUrl.startsWith("__")) {
+    throw new Error("El servicio OAuth de Firefox no está configurado.");
+  }
+  return `${firefoxOAuthBrokerUrl}/oauth/token`;
+}
+
+async function requestFirefoxGoogleTokens(body) {
+  const response = await fetch(getFirefoxOAuthBrokerUrl(), {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  const value = await response.json().catch(() => ({}));
+  if (!response.ok || typeof value.access_token !== "string") {
+    throw new Error(
+      value.error_description ??
+        value.error ??
+        "No se pudo completar la autorización de Google.",
+    );
+  }
+  return value;
+}
+
+async function authorizeFirefoxDrive() {
   const redirectUri = getFirefoxLoopbackRedirect();
+  const verifier = createRandomUrlSafeValue(64);
   const state = createRandomUrlSafeValue();
+  const challenge = await createCodeChallenge(verifier);
   const authorizationUrl = new URL("https://accounts.google.com/o/oauth2/v2/auth");
   authorizationUrl.search = new URLSearchParams({
+    access_type: "offline",
     client_id: firefoxGoogleClientId,
+    code_challenge: challenge,
+    code_challenge_method: "S256",
     include_granted_scopes: "true",
-    prompt: interactive ? "consent" : "none",
+    prompt: "consent",
     redirect_uri: redirectUri,
-    response_type: "token",
+    response_type: "code",
     scope: driveScope,
     state,
   }).toString();
 
   const resultUrl = await extensionApi.identity.launchWebAuthFlow({
-    interactive,
+    interactive: true,
     url: authorizationUrl.toString(),
   });
   if (!resultUrl) {
@@ -65,11 +113,10 @@ async function authorizeFirefoxDrive(interactive) {
   }
 
   const result = new URL(resultUrl);
-  const response = new URLSearchParams(result.hash.slice(1));
-  if (response.get("state") !== state) {
+  if (result.searchParams.get("state") !== state) {
     throw new Error("La respuesta OAuth no coincide con la solicitud original.");
   }
-  const oauthError = response.get("error");
+  const oauthError = result.searchParams.get("error");
   if (oauthError) {
     throw new Error(
       oauthError === "access_denied"
@@ -77,14 +124,24 @@ async function authorizeFirefoxDrive(interactive) {
         : `Google rechazó la autorización: ${oauthError}.`,
     );
   }
-  const accessToken = response.get("access_token");
-  if (!accessToken) {
-    throw new Error("Google no devolvió un token de acceso.");
+  const code = result.searchParams.get("code");
+  if (!code) {
+    throw new Error("Google no devolvió un código de autorización.");
   }
 
+  const tokens = await requestFirefoxGoogleTokens({
+    grantType: "authorization_code",
+    code,
+    codeVerifier: verifier,
+    redirectUri,
+  });
+  if (typeof tokens.refresh_token !== "string") {
+    throw new Error("Google no devolvió un permiso de acceso persistente.");
+  }
   const authState = {
-    accessToken,
-    expiresAt: Date.now() + Number(response.get("expires_in") ?? 3600) * 1000,
+    accessToken: tokens.access_token,
+    expiresAt: Date.now() + Number(tokens.expires_in ?? 3600) * 1000,
+    refreshToken: tokens.refresh_token,
   };
   await setFirefoxAuthState(authState);
   return authState.accessToken;
@@ -100,16 +157,28 @@ async function getFirefoxDriveToken(interactive) {
     return authState.accessToken;
   }
 
-  try {
-    return await authorizeFirefoxDrive(interactive);
-  } catch (error) {
-    await clearFirefoxAuthState();
-    await setStoredDriveState({ connected: false });
-    if (interactive) {
-      throw error;
+  if (typeof authState?.refreshToken === "string") {
+    try {
+      const tokens = await requestFirefoxGoogleTokens({
+        grantType: "refresh_token",
+        refreshToken: authState.refreshToken,
+      });
+      await setFirefoxAuthState({
+        accessToken: tokens.access_token,
+        expiresAt: Date.now() + Number(tokens.expires_in ?? 3600) * 1000,
+        refreshToken: tokens.refresh_token ?? authState.refreshToken,
+      });
+      return tokens.access_token;
+    } catch {
+      await clearFirefoxAuthState();
+      await setStoredDriveState({ connected: false });
     }
+  }
+
+  if (!interactive) {
     throw new Error("Vuelve a conectar Google Drive.");
   }
+  return authorizeFirefoxDrive();
 }
 
 async function getStoredDriveState() {

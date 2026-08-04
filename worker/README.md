@@ -1,0 +1,39 @@
+# Firefox OAuth broker
+
+This Cloudflare Worker keeps the Google OAuth web client secret outside the
+published Firefox extension. It exchanges authorization codes and refreshes
+access tokens; board data and wallpapers never pass through it.
+
+## GitHub configuration
+
+Add these repository secrets:
+
+- `CLOUDFLARE_API_TOKEN`: Cloudflare API token with Workers Scripts edit access.
+- `CLOUDFLARE_ACCOUNT_ID`: Cloudflare account ID.
+- `FIREFOX_GOOGLE_CLIENT_ID`: Google OAuth web application client ID.
+- `FIREFOX_GOOGLE_CLIENT_SECRET`: secret for that web application client.
+
+After the first Worker deployment, add this repository variable:
+
+- `FIREFOX_OAUTH_BROKER_URL`: deployed origin without a trailing slash, for
+  example `https://clean-new-tab-oauth.example.workers.dev`.
+
+The Google OAuth web client must authorize this exact redirect URI:
+
+```text
+http://127.0.0.1/mozoauth2/e697e40c882940b0642dddbae923c59b0596f579
+```
+
+The workflow deploys automatically when files under `worker/` change on `main`.
+It can also be started manually from GitHub Actions.
+
+## Local development
+
+Create `worker/.dev.vars` (ignored by Git) with:
+
+```dotenv
+GOOGLE_CLIENT_ID=your-web-client-id
+GOOGLE_CLIENT_SECRET=your-web-client-secret
+```
+
+Then run `npx wrangler dev --config worker/wrangler.jsonc`.

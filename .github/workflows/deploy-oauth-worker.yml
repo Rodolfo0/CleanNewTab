@@ -1,0 +1,67 @@
+name: Deploy Firefox OAuth broker
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - worker/**
+      - .github/workflows/deploy-oauth-worker.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-firefox-oauth-broker
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Deploy to Cloudflare Workers
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Validate required secrets
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          GOOGLE_CLIENT_ID: ${{ secrets.FIREFOX_GOOGLE_CLIENT_ID }}
+          GOOGLE_CLIENT_SECRET: ${{ secrets.FIREFOX_GOOGLE_CLIENT_SECRET }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          for variable in \
+            CLOUDFLARE_API_TOKEN \
+            CLOUDFLARE_ACCOUNT_ID \
+            GOOGLE_CLIENT_ID \
+            GOOGLE_CLIENT_SECRET; do
+            if [[ -z "${!variable:-}" ]]; then
+              echo "Required secret $variable is empty." >&2
+              exit 1
+            fi
+          done
+
+      - name: Deploy Worker and update its secrets
+        id: deploy
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: worker
+          command: deploy
+          secrets: |
+            GOOGLE_CLIENT_ID
+            GOOGLE_CLIENT_SECRET
+        env:
+          GOOGLE_CLIENT_ID: ${{ secrets.FIREFOX_GOOGLE_CLIENT_ID }}
+          GOOGLE_CLIENT_SECRET: ${{ secrets.FIREFOX_GOOGLE_CLIENT_SECRET }}
+
+      - name: Show deployment URL
+        env:
+          DEPLOYMENT_URL: ${{ steps.deploy.outputs.deployment-url }}
+        run: |
+          echo "Worker deployed to: $DEPLOYMENT_URL"
+          echo "Set FIREFOX_OAUTH_BROKER_URL as a GitHub repository variable to this origin."

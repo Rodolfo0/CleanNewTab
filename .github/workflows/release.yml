@@ -21,6 +21,16 @@ jobs:
         if: ${{ steps.release.outputs.release_created }}
         uses: actions/checkout@v4
 
+      - name: Validate Firefox OAuth broker configuration
+        if: ${{ steps.release.outputs.release_created }}
+        env:
+          FIREFOX_OAUTH_BROKER_URL: ${{ vars.FIREFOX_OAUTH_BROKER_URL }}
+        run: |
+          if [[ -z "$FIREFOX_OAUTH_BROKER_URL" ]]; then
+            echo "Repository variable FIREFOX_OAUTH_BROKER_URL is empty." >&2
+            exit 1
+          fi
+
       - name: Set up Node.js
         if: ${{ steps.release.outputs.release_created }}
         uses: actions/setup-node@v4
@@ -39,6 +49,8 @@ jobs:
       - name: Build release packages
         id: build
         if: ${{ steps.release.outputs.release_created }}
+        env:
+          FIREFOX_OAUTH_BROKER_URL: ${{ vars.FIREFOX_OAUTH_BROKER_URL }}
         run: npm run package:mozilla
 
       - name: Attach packages to GitHub release
@@ -183,6 +195,8 @@ jobs:
             else
               publish_error="$(jq -r '.error.message // .message // "No error description returned."' "$publish_body")"
               echo "Chrome publish failed ($publish_status): $publish_error" >&2
+              echo "Chrome publish response with additional details:" >&2
+              jq . "$publish_body" >&2 || sed 's/^/  /' "$publish_body" >&2
               exit 1
             fi
           fi

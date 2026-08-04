@@ -40,9 +40,14 @@ jobs:
         env:
           PUBLISH_CHROME: ${{ inputs.publish_chrome }}
           PUBLISH_FIREFOX: ${{ inputs.publish_firefox }}
+          FIREFOX_OAUTH_BROKER_URL: ${{ vars.FIREFOX_OAUTH_BROKER_URL }}
         run: |
           if [[ "$PUBLISH_CHROME" != "true" && "$PUBLISH_FIREFOX" != "true" ]]; then
             echo "Select Chrome, Firefox, or both." >&2
+            exit 1
+          fi
+          if [[ "$PUBLISH_FIREFOX" == "true" && -z "$FIREFOX_OAUTH_BROKER_URL" ]]; then
+            echo "Repository variable FIREFOX_OAUTH_BROKER_URL is empty." >&2
             exit 1
           fi
 
@@ -71,6 +76,8 @@ jobs:
         run: npm run lint
 
       - name: Build release packages
+        env:
+          FIREFOX_OAUTH_BROKER_URL: ${{ vars.FIREFOX_OAUTH_BROKER_URL }}
         run: npm run package:mozilla
 
       - name: Read selected version
@@ -260,6 +267,8 @@ jobs:
             else
               publish_error="$(jq -r '.error.message // .message // "No error description returned."' "$publish_body")"
               echo "Chrome publish failed ($publish_status): $publish_error" >&2
+              echo "Chrome publish response with additional details:" >&2
+              jq . "$publish_body" >&2 || sed 's/^/  /' "$publish_body" >&2
               exit 1
             fi
           fi

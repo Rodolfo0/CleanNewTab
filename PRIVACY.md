@@ -1,6 +1,6 @@
 # Política de privacidad de Clean New Tab
 
-**Última actualización: 28 de julio de 2026**
+**Última actualización: 4 de agosto de 2026**
 
 Clean New Tab (“la Extensión”) reemplaza la página de nueva pestaña del
 navegador por un tablero personalizable. Esta política explica qué información
@@ -11,7 +11,8 @@ externos.
 
 - No es necesario crear una cuenta.
 - El desarrollador no recopila, recibe ni vende datos personales.
-- La configuración del tablero se guarda localmente en el navegador.
+- La configuración del tablero se guarda localmente y, sólo si el usuario lo
+  solicita, puede sincronizarse con su propio Google Drive.
 - El acceso al historial de navegación es opcional.
 - Las sugerencias remotas de búsqueda son opcionales y requieren autorización.
 - Los dominios de los accesos directos pueden enviarse a `geticon.dev` para
@@ -23,8 +24,29 @@ externos.
 
 La Extensión guarda localmente los espacios, accesos directos, grupos, títulos,
 preferencias visuales, fondos y demás opciones creadas por el usuario. Esta
-información se almacena en el almacenamiento local del navegador y no se envía
-al desarrollador.
+información no se envía al desarrollador.
+
+### Sincronización opcional con Google Drive
+
+Cuando el usuario selecciona explícitamente **“Sincronizar mi configuración con
+Drive”**, la Extensión solicita autorización para acceder únicamente a su
+carpeta privada de datos de aplicación (`appDataFolder`) en Google Drive. La
+Extensión puede subir y descargar allí los tableros, accesos directos, URLs,
+preferencias visuales y fondos personalizados necesarios para mantener la misma
+configuración en los dispositivos del usuario.
+
+Estos archivos no se comparten con otros usuarios ni son visibles en la carpeta
+normal de Google Drive. Google procesa y almacena la información conforme a sus
+propias condiciones y política de privacidad. El desarrollador no recibe los
+archivos ni el contenido de los tableros.
+
+La autorización se inicia sólo por acción del usuario. Los tokens necesarios
+para mantener la conexión son administrados por el navegador o almacenados
+localmente por la Extensión. En Firefox, un servicio OAuth alojado en Cloudflare
+Workers procesa de forma transitoria el código y los tokens de autorización para
+intercambiarlos o renovarlos con Google. Este servicio no guarda esos tokens ni
+recibe tableros, fondos o archivos de Drive. Los tokens se utilizan
+exclusivamente para acceder a la carpeta privada de datos de esta aplicación.
 
 ### Historial de navegación
 
@@ -79,7 +101,9 @@ como la dirección IP y datos HTTP básicos, conforme a su propia política.
 La Extensión no solicita ni recopila:
 
 - Nombre, correo electrónico, dirección u otros identificadores personales.
-- Contraseñas, credenciales, tokens de autenticación o números PIN.
+- Contraseñas, números PIN o credenciales introducidas manualmente por el
+  usuario. La Extensión sí maneja localmente la autorización OAuth necesaria
+  para la sincronización opcional con Drive, como se describe anteriormente.
 - Información financiera o de pagos.
 - Información médica o de salud.
 - Comunicaciones personales.
@@ -97,24 +121,37 @@ las funciones visibles de la nueva pestaña. El desarrollador:
 - No transfiere datos con fines crediticios, publicitarios o comerciales.
 
 La transmisión a proveedores externos se limita a las funciones descritas:
-sugerencias de búsqueda e iconos de sitios web.
+sincronización opcional con Google Drive, sugerencias de búsqueda e iconos de
+sitios web. Cloudflare proporciona la infraestructura del servicio OAuth usado
+por Firefox y puede procesar los datos técnicos necesarios para atender esas
+solicitudes conforme a su propia política de privacidad.
 
 El uso de la información obtenida mediante las API de Chrome cumple con la
 Política de Datos de Usuario de Chrome Web Store, incluidos sus requisitos de
+Uso Limitado.
+
+El uso de la información recibida de las API de Google se limitará a proporcionar
+la función visible de sincronización solicitada por el usuario y cumplirá con la
+Política de Datos de Usuario de Chrome Web Store, incluidos los requisitos de
 Uso Limitado.
 
 ## Almacenamiento, conservación y eliminación
 
 Los tableros, preferencias, términos de búsqueda locales e iconos almacenados en
 caché permanecen en el dispositivo mientras la Extensión esté instalada o hasta
-que el usuario elimine sus datos.
+que el usuario elimine sus datos. Si se habilita la sincronización, la copia de
+los tableros y fondos permanece en `appDataFolder` hasta que el usuario elimine
+los datos de la aplicación desde su cuenta de Google.
 
 El usuario puede eliminar la información:
 
 1. Borrando los datos de la Extensión desde la configuración del navegador.
 2. Restableciendo o eliminando los elementos desde la interfaz cuando esa opción
    esté disponible.
-3. Desinstalando la Extensión.
+3. Quitando la conexión con Google Drive desde la Extensión.
+4. Eliminando los datos asociados a la aplicación desde su cuenta de Google si
+   también desea borrar la copia remota.
+5. Desinstalando la Extensión.
 
 El desarrollador no puede recuperar estos datos porque no recibe ni mantiene una
 copia en sus servidores.
@@ -143,4 +180,3 @@ actualizarán también los avisos y consentimientos correspondientes.
 Para preguntas o solicitudes relacionadas con esta política, abre un reporte en:
 
 https://github.com/Rodolfo0/CustomNewTab/issues
-
