@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.5.0](https://github.com/Rodolfo0/CustomNewTab/compare/clean-new-tab-v0.4.1...clean-new-tab-v0.5.0) (2026-08-04)
+
+
+### Features
+
+* **firefox:** add OAuth broker and Drive sync ([d311308](https://github.com/Rodolfo0/CustomNewTab/commit/d311308dac2572cf33f975810acbe6d95fe5e03d))
+
 ## [0.4.1](https://github.com/Rodolfo0/CustomNewTab/compare/clean-new-tab-v0.4.0...clean-new-tab-v0.4.1) (2026-08-04)
 
 
