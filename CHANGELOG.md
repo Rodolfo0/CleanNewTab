@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.4.1](https://github.com/Rodolfo0/CustomNewTab/compare/clean-new-tab-v0.4.0...clean-new-tab-v0.4.1) (2026-08-04)
+
+
+### Bug Fixes
+
+* **ci:** improve Chrome upload handling ([87c2452](https://github.com/Rodolfo0/CustomNewTab/commit/87c245267b1c7c8db9784b9f88866bdd853e3528))
+
 ## [0.4.0](https://github.com/Rodolfo0/CustomNewTab/compare/clean-new-tab-v0.3.1...clean-new-tab-v0.4.0) (2026-08-03)
 
 
