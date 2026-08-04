@@ -153,16 +153,48 @@ jobs:
           fi
 
           item_name="publishers/$CHROME_PUBLISHER_ID/items/$CHROME_EXTENSION_ID"
+          package_version="$(unzip -p "$chrome_package" manifest.json | jq -r '.version // empty')"
+          if [[ -z "$package_version" ]]; then
+            echo "Chrome package does not contain a valid manifest version." >&2
+            exit 1
+          fi
+
           if [[ "$UPLOAD_CHROME_PACKAGE" == "true" ]]; then
-            upload_response="$(
-              curl --fail-with-body --silent --show-error \
+            upload_body="$(mktemp)"
+            upload_status="$(
+              curl --silent --show-error \
+                --output "$upload_body" \
+                --write-out '%{http_code}' \
                 --request POST \
                 --header "Authorization: Bearer $access_token" \
                 --header "Content-Type: application/zip" \
                 --data-binary "@$chrome_package" \
                 "https://chromewebstore.googleapis.com/upload/v2/$item_name:upload"
             )"
-            upload_state="$(jq -r '.uploadState // empty' <<<"$upload_response")"
+
+            if [[ "$upload_status" =~ ^2 ]]; then
+              upload_state="$(jq -r '.uploadState // empty' "$upload_body")"
+            else
+              status_response="$(
+                curl --fail-with-body --silent --show-error \
+                  --header "Authorization: Bearer $access_token" \
+                  "https://chromewebstore.googleapis.com/v2/$item_name:fetchStatus"
+              )"
+              submitted_version="$(jq -r '.submittedItemRevisionStatus.distributionChannels[0].crxVersion // empty' <<<"$status_response")"
+              published_version="$(jq -r '.publishedItemRevisionStatus.distributionChannels[0].crxVersion // empty' <<<"$status_response")"
+              if [[ "$submitted_version" == "$package_version" ]]; then
+                submitted_state="$(jq -r '.submittedItemRevisionStatus.state // "unknown"' <<<"$status_response")"
+                echo "Chrome version $package_version is already submitted with state: $submitted_state"
+                exit 0
+              fi
+              if [[ "$published_version" == "$package_version" ]]; then
+                echo "Chrome version $package_version is already published."
+                exit 0
+              fi
+              upload_error="$(jq -r '.error.message // .message // "No error description returned."' "$upload_body")"
+              echo "Chrome upload failed ($upload_status): $upload_error" >&2
+              exit 1
+            fi
 
             for attempt in {1..30}; do
               if [[ "$upload_state" != "IN_PROGRESS" && "$upload_state" != "UPLOAD_IN_PROGRESS" ]]; then
