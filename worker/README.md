@@ -36,4 +36,4 @@ GOOGLE_CLIENT_ID=your-web-client-id
 GOOGLE_CLIENT_SECRET=your-web-client-secret
 ```
 
-Then run `npx wrangler dev --config worker/wrangler.jsonc`.
+Then run `npx wrangler dev --config worker/wrangler.toml`.
