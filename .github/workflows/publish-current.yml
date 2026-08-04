@@ -50,6 +50,8 @@ jobs:
     name: Build current version
     needs: validate-inputs
     runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.value }}
     steps:
       - name: Check out selected ref
         uses: actions/checkout@v4
@@ -71,9 +73,11 @@ jobs:
       - name: Build release packages
         run: npm run package:mozilla
 
-      - name: Show selected version
+      - name: Read selected version
+        id: version
         run: |
           version="$(node -p 'require("./package.json").version')"
+          echo "value=$version" >> "$GITHUB_OUTPUT"
           echo "Version: $version"
           echo "Ref: ${{ inputs.ref }}"
 
@@ -81,7 +85,10 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: current-version-packages
-          path: artifacts/*.zip
+          path: |
+            artifacts/clean-new-tab-chrome-${{ steps.version.outputs.value }}.zip
+            artifacts/clean-new-tab-firefox-${{ steps.version.outputs.value }}.zip
+            artifacts/clean-new-tab-source-${{ steps.version.outputs.value }}.zip
           if-no-files-found: error
           retention-days: 7
 
@@ -105,6 +112,7 @@ jobs:
           CHROME_PUBLISHER_ID: ${{ secrets.CHROME_PUBLISHER_ID }}
           CHROME_EXTENSION_ID: ${{ secrets.CHROME_EXTENSION_ID }}
           UPLOAD_CHROME_PACKAGE: ${{ inputs.upload_chrome_package }}
+          PACKAGE_VERSION: ${{ needs.build.outputs.version }}
         shell: bash
         run: |
           set -euo pipefail
@@ -121,8 +129,8 @@ jobs:
             fi
           done
 
-          chrome_package="$(find artifacts -maxdepth 1 -type f -name 'clean-new-tab-chrome-*.zip' -print -quit)"
-          if [[ -z "$chrome_package" ]]; then
+          chrome_package="artifacts/clean-new-tab-chrome-$PACKAGE_VERSION.zip"
+          if [[ ! -f "$chrome_package" ]]; then
             echo "Chrome package was not found." >&2
             exit 1
           fi
@@ -289,6 +297,7 @@ jobs:
         env:
           AMO_JWT_ISSUER: ${{ secrets.AMO_JWT_ISSUER }}
           AMO_JWT_SECRET: ${{ secrets.AMO_JWT_SECRET }}
+          PACKAGE_VERSION: ${{ needs.build.outputs.version }}
         shell: bash
         run: |
           set -euo pipefail
@@ -298,8 +307,8 @@ jobs:
             exit 1
           fi
 
-          source_package="$(find artifacts -maxdepth 1 -type f -name 'clean-new-tab-source-*.zip' -print -quit)"
-          if [[ -z "$source_package" ]]; then
+          source_package="artifacts/clean-new-tab-source-$PACKAGE_VERSION.zip"
+          if [[ ! -f "$source_package" ]]; then
             echo "Source package was not found." >&2
             exit 1
           fi

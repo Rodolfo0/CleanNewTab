@@ -45,10 +45,13 @@ jobs:
         if: ${{ steps.release.outputs.release_created }}
         env:
           GH_TOKEN: ${{ github.token }}
-        run: >-
-          gh release upload "${{ steps.release.outputs.tag_name }}"
-          artifacts/*.zip
-          --clobber
+        run: |
+          version="$(node -p 'require("./package.json").version')"
+          gh release upload "${{ steps.release.outputs.tag_name }}" \
+            "artifacts/clean-new-tab-chrome-$version.zip" \
+            "artifacts/clean-new-tab-firefox-$version.zip" \
+            "artifacts/clean-new-tab-source-$version.zip" \
+            --clobber
 
       - name: Submit to Chrome Web Store
         if: ${{ steps.release.outputs.release_created }}
@@ -62,8 +65,9 @@ jobs:
         run: |
           set -euo pipefail
 
-          chrome_package="$(find artifacts -maxdepth 1 -type f -name 'clean-new-tab-chrome-*.zip' -print -quit)"
-          if [[ -z "$chrome_package" ]]; then
+          version="$(node -p 'require("./package.json").version')"
+          chrome_package="artifacts/clean-new-tab-chrome-$version.zip"
+          if [[ ! -f "$chrome_package" ]]; then
             echo "Chrome package was not found." >&2
             exit 1
           fi
@@ -192,8 +196,9 @@ jobs:
         run: |
           set -euo pipefail
 
-          source_package="$(find artifacts -maxdepth 1 -type f -name 'clean-new-tab-source-*.zip' -print -quit)"
-          if [[ -z "$source_package" ]]; then
+          version="$(node -p 'require("./package.json").version')"
+          source_package="artifacts/clean-new-tab-source-$version.zip"
+          if [[ ! -f "$source_package" ]]; then
             echo "Source package was not found." >&2
             exit 1
           fi
