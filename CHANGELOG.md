@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.5.1](https://github.com/Rodolfo0/CustomNewTab/compare/clean-new-tab-v0.5.0...clean-new-tab-v0.5.1) (2026-08-05)
+
+
+### Bug Fixes
+
+* **build:** default and validate Firefox OAuth broker ([5bbf028](https://github.com/Rodolfo0/CustomNewTab/commit/5bbf02828cfc3c3c9baef6b5ed6a541c3a4ae284))
+
 ## [0.5.0](https://github.com/Rodolfo0/CustomNewTab/compare/clean-new-tab-v0.4.1...clean-new-tab-v0.5.0) (2026-08-04)
 
 
