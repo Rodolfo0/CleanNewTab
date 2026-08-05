@@ -1,4 +1,4 @@
-name: Deploy Firefox OAuth broker
+name: Deploy OAuth broker
 
 on:
   push:
@@ -13,7 +13,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: deploy-firefox-oauth-broker
+  group: deploy-oauth-broker
   cancel-in-progress: false
 
 jobs:

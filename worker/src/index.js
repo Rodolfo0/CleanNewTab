@@ -25,10 +25,15 @@ function isNonEmptyString(value, maximumLength = 8_192) {
 
 function createGoogleTokenParameters(body, env) {
   if (body.grantType === "authorization_code") {
+    const allowedRedirectUris = new Set([
+      env.GOOGLE_CHROME_REDIRECT_URI,
+      env.GOOGLE_FIREFOX_REDIRECT_URI,
+    ]);
     if (
       !isNonEmptyString(body.code) ||
       !isNonEmptyString(body.codeVerifier) ||
-      body.redirectUri !== env.GOOGLE_REDIRECT_URI
+      !isNonEmptyString(body.redirectUri) ||
+      !allowedRedirectUris.has(body.redirectUri)
     ) {
       throw new Error("invalid_authorization_request");
     }
@@ -38,7 +43,7 @@ function createGoogleTokenParameters(body, env) {
       code: body.code,
       code_verifier: body.codeVerifier,
       grant_type: "authorization_code",
-      redirect_uri: env.GOOGLE_REDIRECT_URI,
+      redirect_uri: body.redirectUri,
     };
   }
 

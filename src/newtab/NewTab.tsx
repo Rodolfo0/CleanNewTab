@@ -145,6 +145,19 @@ function loadTabIcon() {
   }
 }
 
+function saveTabIconLocally(iconSource: string | null) {
+  try {
+    if (iconSource !== null) {
+      window.localStorage.setItem(tabIconStorageKey, iconSource);
+    } else {
+      window.localStorage.removeItem(tabIconStorageKey);
+    }
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 function loadTabTitle() {
   try {
     return window.localStorage.getItem(tabTitleStorageKey) ?? defaultTabTitle;
@@ -189,6 +202,7 @@ export function NewTab() {
   const isApplyingRemoteWorkspace = useRef(false);
   const initialActiveSpaceId = useRef(workspace.activeSpaceId);
   const [tabIcon, setTabIcon] = useState<string | null>(loadTabIcon);
+  const tabIconRef = useRef(tabIcon);
   const [tabTitle, setTabTitle] = useState(loadTabTitle);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(true);
   const activeSpace =
@@ -296,6 +310,7 @@ export function NewTab() {
           kind: "empty" | "remote";
           envelope?: DriveWorkspaceEnvelope;
           wallpapers?: DriveWallpaperBundle;
+          tabIcon?: string | null;
         }>({ type: "drive-load" });
         if (cancelled) return;
         setDriveLastCheckedAt(new Date().toISOString());
@@ -311,12 +326,28 @@ export function NewTab() {
             await importWallpapersRef.current(result.wallpapers);
           } else {
             const localWallpapers = await exportWallpapersRef.current();
-            if (localWallpapers.customWallpapers.length > 0) {
+            if (
+              localWallpapers.customWallpapers.length > 0 ||
+              tabIconRef.current !== null
+            ) {
               await sendDriveMessage<{ ok: true }>({
                 type: "drive-save-wallpapers",
                 wallpapers: localWallpapers,
+                tabIcon: tabIconRef.current,
               });
             }
+          }
+          if (result.tabIcon !== undefined) {
+            if (saveTabIconLocally(result.tabIcon)) {
+              tabIconRef.current = result.tabIcon;
+              setTabIcon(result.tabIcon);
+            }
+          } else if (result.wallpapers && tabIconRef.current !== null) {
+            await sendDriveMessage<{ ok: true }>({
+              type: "drive-save-wallpapers",
+              wallpapers: await exportWallpapersRef.current(),
+              tabIcon: tabIconRef.current,
+            });
           }
           driveRevision.current = result.envelope.revision;
           setDriveLastSavedAt(result.envelope.updatedAt);
@@ -476,6 +507,7 @@ export function NewTab() {
     await sendDriveMessage<{ ok: true }>({
       type: "drive-save-wallpapers",
       wallpapers,
+      tabIcon: tabIconRef.current,
     });
     setDriveLastSavedAt(new Date().toISOString());
   }
@@ -532,10 +564,12 @@ export function NewTab() {
         kind: "created" | "remote";
         envelope: DriveWorkspaceEnvelope;
         wallpapers?: DriveWallpaperBundle;
+        tabIcon?: string | null;
       }>({
         type: "drive-connect",
         workspace: syncedWorkspace,
         wallpapers: await exportWallpapersRef.current(),
+        tabIcon: tabIconRef.current,
         deviceId: driveDeviceId.current,
       });
       driveEnabled.current = true;
@@ -561,6 +595,9 @@ export function NewTab() {
             if (!wallpaperResult.ok) {
               throw new Error(wallpaperResult.message ?? "No se pudieron cargar los fondos de Drive.");
             }
+          }
+          if (result.tabIcon !== undefined) {
+            updateTabIcon(result.tabIcon, false);
           }
           isApplyingRemoteWorkspace.current = true;
           setWorkspace(remoteWorkspace);
@@ -594,6 +631,7 @@ export function NewTab() {
         kind: "empty" | "remote";
         envelope?: DriveWorkspaceEnvelope;
         wallpapers?: DriveWallpaperBundle;
+        tabIcon?: string | null;
       }>({ type: "drive-load" });
       setDriveLastCheckedAt(new Date().toISOString());
 
@@ -616,6 +654,9 @@ export function NewTab() {
         if (!wallpaperResult.ok) {
           throw new Error(wallpaperResult.message ?? "No se pudieron cargar los fondos de Drive.");
         }
+      }
+      if (result.tabIcon !== undefined) {
+        updateTabIcon(result.tabIcon, false);
       }
 
       driveRevision.current = result.envelope.revision;
@@ -871,19 +912,16 @@ export function NewTab() {
     }));
   }
 
-  function updateTabIcon(iconSource: string | null) {
-    try {
-      if (iconSource !== null) {
-        window.localStorage.setItem(tabIconStorageKey, iconSource);
-      } else {
-        window.localStorage.removeItem(tabIconStorageKey);
-      }
-
-      setTabIcon(iconSource);
-      return true;
-    } catch {
+  function updateTabIcon(iconSource: string | null, syncDrive = true) {
+    if (!saveTabIconLocally(iconSource)) {
       return false;
     }
+    tabIconRef.current = iconSource;
+    setTabIcon(iconSource);
+    if (syncDrive) {
+      scheduleWallpaperDriveSave();
+    }
+    return true;
   }
 
   function updateTabTitle(title: string) {

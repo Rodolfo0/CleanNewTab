@@ -1,7 +1,7 @@
-# Firefox OAuth broker
+# OAuth broker
 
 This Cloudflare Worker keeps the Google OAuth web client secret outside the
-published Firefox extension. It exchanges authorization codes and refreshes
+published Chrome and Firefox extensions. It exchanges authorization codes and refreshes
 access tokens; board data and wallpapers never pass through it.
 
 ## GitHub configuration
@@ -18,10 +18,11 @@ repository variable can override it without changing the source:
 
 - `FIREFOX_OAUTH_BROKER_URL`: deployed origin without a trailing slash.
 
-The Google OAuth web client must authorize this exact redirect URI:
+The same Google OAuth web client must authorize both exact redirect URIs:
 
 ```text
 http://127.0.0.1/mozoauth2/e697e40c882940b0642dddbae923c59b0596f579
+https://jannpabohegeiaechemkngjlhiabjjjn.chromiumapp.org/
 ```
 
 The workflow deploys automatically when files under `worker/` change on `main`.

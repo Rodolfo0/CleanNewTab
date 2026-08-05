@@ -11,6 +11,7 @@
     "history"
   ],
   "host_permissions": [
+    "https://accounts.google.com/*",
     "https://www.googleapis.com/*"
   ],
   "optional_host_permissions": [
@@ -22,12 +23,6 @@
   ],
   "background": {
     "service_worker": "background.js"
-  },
-  "oauth2": {
-    "client_id": "413769723468-i098drsav8f8le6l66jiufeg5ob0ftb5.apps.googleusercontent.com",
-    "scopes": [
-      "https://www.googleapis.com/auth/drive.appdata"
-    ]
   },
   "chrome_url_overrides": {
     "newtab": "index.html"

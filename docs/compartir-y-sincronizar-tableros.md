@@ -463,71 +463,26 @@ No utilizar las cuentas reales de usuarios finales como solución permanente.
 Antes de publicar, cambiar a producción y completar cualquier revisión que la
 consola solicite.
 
-### 7. Crear el cliente OAuth de Chromium
+### 7. Configurar el cliente OAuth común para Chrome y Firefox
 
-Para el paquete de Chrome/Chromium:
+Ambos paquetes usan el mismo cliente de tipo **Aplicación web**, Authorization
+Code con PKCE y el mismo broker OAuth. En **Google Auth Platform > Clients**, el
+cliente debe autorizar exactamente estas dos URI:
 
-1. Publicar primero un borrador de la extensión en Chrome Web Store para obtener
-   un ID estable. El cliente no debe basarse en el ID aleatorio de una carga
-   descomprimida.
-2. Abrir **Google Auth Platform > Clients / Clientes**.
-3. Pulsar **Create client / Crear cliente**.
-4. Elegir **Chrome Extension / Extensión de Chrome**.
-5. Escribir el ID definitivo de Chrome Web Store, sin el prefijo
-   `chrome-extension://`.
-6. Usar un nombre descriptivo, por ejemplo `Clean New Tab - Chrome`.
-7. Crear el cliente y copiar su `client_id`.
-8. Cuando la publicación y el propietario estén disponibles, usar **Verify app
-   ownership / Verificar propiedad de la aplicación**.
-
-El manifiesto de Chromium necesitará, como mínimo, el permiso `identity` y la
-configuración OAuth correspondiente:
-
-```json
-{
-  "permissions": ["identity"],
-  "oauth2": {
-    "client_id": "CLIENT_ID_DE_CHROME.apps.googleusercontent.com",
-    "scopes": ["https://www.googleapis.com/auth/drive.appdata"]
-  }
-}
+```text
+https://jannpabohegeiaechemkngjlhiabjjjn.chromiumapp.org/
+http://127.0.0.1/mozoauth2/e697e40c882940b0642dddbae923c59b0596f579
 ```
 
-El `client_id` es público y puede formar parte del manifiesto; un
-`client_secret` no debe incluirse. Google detalla la propiedad requerida del
-elemento de Chrome Web Store en [OAuth 2.0 for iOS & Desktop
-Apps](https://developers.google.com/identity/protocols/oauth2/native-app#protect-your-apps).
+Los manifiestos sólo declaran el permiso `identity`; ya no incluyen un bloque
+`oauth2` ni usan un cliente de tipo **Chrome Extension**. El `client_secret` se
+guarda exclusivamente como secreto del Cloudflare Worker y nunca se empaqueta
+en la extensión.
 
-### 8. Resolver el cliente OAuth de Firefox antes de registrarlo
-
-Firefox no puede reutilizar automáticamente el cliente de tipo **Chrome
-Extension**. Además, su URL generada por `browser.identity.getRedirectURL()` y
-las restricciones de redirect URI de Google deben encajar con el flujo OAuth
-elegido.
-
-Antes de crear credenciales de Firefox:
-
-1. Obtener la redirect URI real de la extensión firmada usando
-   `browser.identity.getRedirectURL()`.
-2. Construir una prueba mínima de Authorization Code con PKCE.
-3. Confirmar en la consola qué tipo de cliente permite registrar exactamente
-   esa URI.
-4. Si Google no acepta la URI generada, decidir explícitamente entre:
-   - un endpoint HTTPS propio que complete/redirija el flujo sin almacenar los
-     tableros; o
-   - limitar inicialmente la integración a Chromium.
-5. Sólo después crear el cliente compatible, por ejemplo
-   `Clean New Tab - Firefox`, y mantener su ID separado.
-
-No se debe seleccionar arbitrariamente **Aplicación web** o **Aplicación de
-escritorio** y asumir que funcionará. Las aplicaciones web exigen orígenes y
-redirect URIs autorizados; los clientes públicos no pueden guardar secretos. La
-API de identidad de Firefox y sus restricciones están documentadas en
-[`identity`](https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/identity).
-
-Esta validación es un bloqueo técnico real para prometer sincronización
-Chrome–Firefox sin backend. Debe resolverse con un prototipo antes de diseñar el
-resto del motor de sincronización.
+El broker sólo intercambia y renueva tokens. No recibe tableros, fondos de
+pantalla, iconos ni archivos de Drive. La API de identidad compartida está
+documentada para [Chrome](https://developer.chrome.com/docs/extensions/reference/api/identity)
+y [Firefox](https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/identity).
 
 ### 9. Guardar la configuración del proyecto
 
@@ -577,9 +532,9 @@ véase [OAuth App Verification](https://support.google.com/cloud/answer/13463073
 - [ ] Desarrolladores añadidos como usuarios de prueba.
 - [ ] Página, privacidad y dominios configurados en Branding.
 - [ ] Único scope de datos: `drive.appdata`.
-- [ ] Cliente Chrome Extension creado con el ID definitivo de la tienda.
-- [ ] Propiedad del elemento de Chrome verificada.
-- [ ] Flujo y cliente de Firefox validados por separado.
+- [ ] Cliente web común con las redirect URI de Chrome y Firefox registradas.
+- [ ] Worker OAuth desplegado con el ID y secreto de ese cliente web.
+- [ ] Flujo PKCE validado en los paquetes firmados de ambos navegadores.
 - [ ] Ningún client secret o token incluido en la extensión.
 - [ ] Consentimiento, desconexión y revocación probados.
 - [ ] Aplicación publicada/verificada antes de liberar la función.

@@ -42,7 +42,7 @@ archivos ni el contenido de los tableros.
 
 La autorización se inicia sólo por acción del usuario. Los tokens necesarios
 para mantener la conexión son administrados por el navegador o almacenados
-localmente por la Extensión. En Firefox, un servicio OAuth alojado en Cloudflare
+localmente por la Extensión. En Chrome y Firefox, un servicio OAuth alojado en Cloudflare
 Workers procesa de forma transitoria el código y los tokens de autorización para
 intercambiarlos o renovarlos con Google. Este servicio no guarda esos tokens ni
 recibe tableros, fondos o archivos de Drive. Los tokens se utilizan
@@ -123,7 +123,7 @@ las funciones visibles de la nueva pestaña. El desarrollador:
 La transmisión a proveedores externos se limita a las funciones descritas:
 sincronización opcional con Google Drive, sugerencias de búsqueda e iconos de
 sitios web. Cloudflare proporciona la infraestructura del servicio OAuth usado
-por Firefox y puede procesar los datos técnicos necesarios para atender esas
+por la Extensión y puede procesar los datos técnicos necesarios para atender esas
 solicitudes conforme a su propia política de privacidad.
 
 El uso de la información obtenida mediante las API de Chrome cumple con la
