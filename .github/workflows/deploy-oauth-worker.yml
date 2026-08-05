@@ -65,4 +65,4 @@ jobs:
           DEPLOYMENT_URL: ${{ steps.deploy.outputs.deployment-url }}
         run: |
           echo "Worker deployed to: $DEPLOYMENT_URL"
-          echo "Set FIREFOX_OAUTH_BROKER_URL as a GitHub repository variable to this origin."
+          echo "FIREFOX_OAUTH_BROKER_URL can optionally override the committed build URL."

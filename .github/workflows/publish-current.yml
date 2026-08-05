@@ -40,14 +40,9 @@ jobs:
         env:
           PUBLISH_CHROME: ${{ inputs.publish_chrome }}
           PUBLISH_FIREFOX: ${{ inputs.publish_firefox }}
-          FIREFOX_OAUTH_BROKER_URL: ${{ vars.FIREFOX_OAUTH_BROKER_URL }}
         run: |
           if [[ "$PUBLISH_CHROME" != "true" && "$PUBLISH_FIREFOX" != "true" ]]; then
             echo "Select Chrome, Firefox, or both." >&2
-            exit 1
-          fi
-          if [[ "$PUBLISH_FIREFOX" == "true" && -z "$FIREFOX_OAUTH_BROKER_URL" ]]; then
-            echo "Repository variable FIREFOX_OAUTH_BROKER_URL is empty." >&2
             exit 1
           fi
 

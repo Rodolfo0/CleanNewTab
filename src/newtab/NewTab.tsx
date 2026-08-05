@@ -326,7 +326,11 @@ export function NewTab() {
         setDriveState("synced");
       })
       .catch(() => {
-        if (!cancelled) setDriveState("error");
+        if (!cancelled) {
+          driveEnabled.current = false;
+          setDriveConnected(false);
+          setDriveState("error");
+        }
       });
 
     return () => {

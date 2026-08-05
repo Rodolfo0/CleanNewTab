@@ -13,10 +13,10 @@ Add these repository secrets:
 - `FIREFOX_GOOGLE_CLIENT_ID`: Google OAuth web application client ID.
 - `FIREFOX_GOOGLE_CLIENT_SECRET`: secret for that web application client.
 
-After the first Worker deployment, add this repository variable:
+The production Worker URL is committed as the build default. This optional
+repository variable can override it without changing the source:
 
-- `FIREFOX_OAUTH_BROKER_URL`: deployed origin without a trailing slash, for
-  example `https://clean-new-tab-oauth.example.workers.dev`.
+- `FIREFOX_OAUTH_BROKER_URL`: deployed origin without a trailing slash.
 
 The Google OAuth web client must authorize this exact redirect URI:
 
