@@ -56,6 +56,5 @@ for (const browser of ["chrome", "firefox"]) {
       ...new Set([...(manifest.host_permissions ?? []), `${brokerUrl.origin}/*`]),
     ];
     await writeFile(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
-    console.log(`Configured Firefox OAuth broker: ${brokerUrl.origin}`);
   }
 }
