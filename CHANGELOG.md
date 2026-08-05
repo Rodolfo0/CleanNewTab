@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.6.0](https://github.com/Rodolfo0/CustomNewTab/compare/clean-new-tab-v0.5.2...clean-new-tab-v0.6.0) (2026-08-05)
+
+
+### Features
+
+* **oauth:** unify OAuth broker for Chrome and Firefox ([d41b5ea](https://github.com/Rodolfo0/CustomNewTab/commit/d41b5ea796131ccecc46d62cb9fa627865727bfc))
+
 ## [0.5.2](https://github.com/Rodolfo0/CustomNewTab/compare/clean-new-tab-v0.5.1...clean-new-tab-v0.5.2) (2026-08-05)
 
 
