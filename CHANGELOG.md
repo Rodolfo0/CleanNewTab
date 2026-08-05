@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.5.2](https://github.com/Rodolfo0/CustomNewTab/compare/clean-new-tab-v0.5.1...clean-new-tab-v0.5.2) (2026-08-05)
+
+
+### Bug Fixes
+
+* **scripts:** remove debug log ([73d65a1](https://github.com/Rodolfo0/CustomNewTab/commit/73d65a18b931fad1bcbe408210de6f791d0d0c56))
+
 ## [0.5.1](https://github.com/Rodolfo0/CustomNewTab/compare/clean-new-tab-v0.5.0...clean-new-tab-v0.5.1) (2026-08-05)
 
 
