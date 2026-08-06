@@ -1,6 +1,10 @@
-# Custom New Tab
+# Clean New Tab
 
 Extensión de navegador construida con React, Vite, Mantine y Tailwind. Reemplaza la página de nueva pestaña con una pantalla limpia.
+
+El sitio público está construido con Astro en [`website/`](./website) y se
+publica automáticamente en GitHub Pages mediante
+`.github/workflows/deploy-pages.yml`.
 
 [Política de privacidad](./PRIVACY.md)
 

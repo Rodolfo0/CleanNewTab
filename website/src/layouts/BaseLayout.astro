@@ -1,0 +1,53 @@
+---
+import "../styles/global.css";
+
+interface Props {
+  title: string;
+  description: string;
+}
+
+const { title, description } = Astro.props;
+const canonicalURL = new URL(Astro.url.pathname, Astro.site);
+const verificationCode = import.meta.env.PUBLIC_GOOGLE_SITE_VERIFICATION;
+---
+
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width" />
+    <meta name="description" content={description} />
+    <meta name="theme-color" content="#f5f5f0" />
+    {verificationCode && (
+      <meta name="google-site-verification" content={verificationCode} />
+    )}
+    <link rel="canonical" href={canonicalURL} />
+    <title>{title}</title>
+  </head>
+  <body>
+    <header class="site-header">
+      <a class="brand" href={import.meta.env.BASE_URL} aria-label="Clean New Tab, inicio">
+        <span class="brand-mark" aria-hidden="true">C</span>
+        <span>Clean New Tab</span>
+      </a>
+      <nav aria-label="Navegación principal">
+        <a href={`${import.meta.env.BASE_URL}#features`}>Funciones</a>
+        <a href={`${import.meta.env.BASE_URL}privacy/`}>Privacidad</a>
+        <a href={`${import.meta.env.BASE_URL}terms/`}>Términos</a>
+      </nav>
+    </header>
+
+    <main>
+      <slot />
+    </main>
+
+    <footer class="site-footer">
+      <p>© {new Date().getFullYear()} Clean New Tab.</p>
+      <div>
+        <a href={`${import.meta.env.BASE_URL}privacy/`}>Privacidad</a>
+        <a href={`${import.meta.env.BASE_URL}terms/`}>Términos</a>
+        <a href="https://github.com/Rodolfo0/CleanNewTab/issues">Soporte</a>
+      </div>
+    </footer>
+  </body>
+</html>

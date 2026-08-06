@@ -6,7 +6,7 @@ import tseslint from 'typescript-eslint'
 
 export default [
   {
-    ignores: ['dist'],
+    ignores: ['**/dist', 'website/.astro'],
   },
   js.configs.recommended,
   ...tseslint.configs.recommended,
