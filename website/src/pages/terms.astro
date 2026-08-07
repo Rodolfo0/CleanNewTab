@@ -1,0 +1,56 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+---
+
+<BaseLayout
+  title="Términos de uso — Clean New Tab"
+  description="Términos de uso de la extensión Clean New Tab."
+>
+  <article class="legal-page">
+    <header>
+      <p class="eyebrow">Información legal</p>
+      <h1>Términos de uso</h1>
+      <p class="legal-date">Última actualización: 6 de agosto de 2026</p>
+    </header>
+
+    <p>
+      Al instalar o utilizar Clean New Tab aceptas estos términos. Si no estás
+      de acuerdo, puedes dejar de utilizar y desinstalar la Extensión.
+    </p>
+
+    <h2>Servicio</h2>
+    <p>
+      Clean New Tab proporciona una nueva pestaña personalizable. Algunas
+      funciones dependen de servicios externos, como Google Drive, proveedores
+      de búsqueda y servicios de iconos, y pueden cambiar o dejar de estar disponibles.
+    </p>
+
+    <h2>Responsabilidad del usuario</h2>
+    <p>
+      Eres responsable de los enlaces, imágenes y contenido que agregues, de
+      proteger el acceso a tu navegador y cuenta, y de conservar respaldos de
+      información que consideres importante.
+    </p>
+
+    <h2>Disponibilidad y garantías</h2>
+    <p>
+      La Extensión se ofrece “tal cual”, sin garantía de disponibilidad
+      ininterrumpida o ausencia total de errores. En la medida permitida por la
+      legislación aplicable, el desarrollador no será responsable por pérdidas
+      indirectas derivadas del uso o imposibilidad de uso de la Extensión.
+    </p>
+
+    <h2>Privacidad</h2>
+    <p>
+      El tratamiento de información se explica en la
+      <a href={`${import.meta.env.BASE_URL}privacy/`}>Política de privacidad</a>.
+    </p>
+
+    <h2>Cambios y contacto</h2>
+    <p>
+      Estos términos pueden actualizarse para reflejar cambios del producto o
+      requisitos legales. Para preguntas, utiliza
+      <a href="https://github.com/Rodolfo0/CleanNewTab/issues">GitHub Issues</a>.
+    </p>
+  </article>
+</BaseLayout>

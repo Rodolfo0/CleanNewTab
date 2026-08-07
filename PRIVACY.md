@@ -179,4 +179,4 @@ actualizarán también los avisos y consentimientos correspondientes.
 
 Para preguntas o solicitudes relacionadas con esta política, abre un reporte en:
 
-https://github.com/Rodolfo0/CustomNewTab/issues
+https://github.com/Rodolfo0/CleanNewTab/issues

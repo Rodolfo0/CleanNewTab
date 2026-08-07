@@ -1,0 +1,101 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+---
+
+<BaseLayout
+  title="Política de privacidad — Clean New Tab"
+  description="Política de privacidad de la extensión Clean New Tab."
+>
+  <article class="legal-page">
+    <header>
+      <p class="eyebrow">Información legal</p>
+      <h1>Política de privacidad</h1>
+      <p class="legal-date">Última actualización: 4 de agosto de 2026</p>
+    </header>
+
+    <p>
+      Clean New Tab (“la Extensión”) reemplaza la página de nueva pestaña del
+      navegador por un tablero personalizable. Esta política explica qué
+      información maneja, para qué se utiliza y cuándo se comparte con servicios externos.
+    </p>
+
+    <h2>Resumen</h2>
+    <ul>
+      <li>No es necesario crear una cuenta.</li>
+      <li>El desarrollador no recopila, recibe ni vende datos personales.</li>
+      <li>La configuración se guarda localmente.</li>
+      <li>La sincronización con Google Drive, el historial y las sugerencias remotas son opcionales.</li>
+      <li>Los dominios de accesos directos pueden enviarse a geticon.dev para obtener iconos.</li>
+    </ul>
+
+    <h2>Configuración y contenido del tablero</h2>
+    <p>
+      La Extensión guarda localmente espacios, accesos directos, grupos,
+      títulos, preferencias visuales, fondos y demás opciones creadas por el
+      usuario. Esta información no se envía al desarrollador.
+    </p>
+
+    <h2>Sincronización opcional con Google Drive</h2>
+    <p>
+      Cuando el usuario solicita sincronización, la Extensión pide acceso
+      únicamente a su carpeta privada de datos de aplicación
+      (<code>appDataFolder</code>) en Google Drive. Allí puede guardar tableros,
+      URLs, preferencias visuales y fondos personalizados para sincronizarlos
+      entre dispositivos.
+    </p>
+    <p>
+      Estos archivos no son visibles en la carpeta normal de Drive ni se
+      comparten con otros usuarios. Un servicio OAuth alojado en Cloudflare
+      Workers intercambia o renueva de forma transitoria los tokens con Google;
+      no recibe tableros, fondos ni archivos de Drive y no conserva los tokens.
+    </p>
+
+    <h2>Historial, búsquedas e iconos</h2>
+    <p>
+      Si el usuario concede el permiso de historial, las páginas recientes se
+      procesan localmente para facilitar la creación de accesos. Los términos
+      buscados pueden conservarse localmente para sugerencias. Con permiso
+      explícito, el texto escrito puede enviarse por HTTPS al buscador elegido
+      para obtener sugerencias remotas.
+    </p>
+    <p>
+      Para obtener el icono de un acceso directo, el dominio correspondiente
+      puede enviarse a <code>geticon.dev</code>. El proveedor puede recibir la
+      dirección IP y los datos técnicos necesarios para responder a la solicitud.
+    </p>
+
+    <h2>Uso de la información</h2>
+    <p>
+      La información se utiliza exclusivamente para las funciones visibles de
+      la nueva pestaña. El desarrollador no vende datos, no crea perfiles, no
+      utiliza información para publicidad y no transfiere datos con fines comerciales.
+    </p>
+
+    <h2>Conservación y eliminación</h2>
+    <p>
+      Los datos locales permanecen mientras la Extensión esté instalada o hasta
+      que el usuario los elimine. La copia opcional de Drive permanece en
+      <code>appDataFolder</code> hasta que el usuario elimine los datos asociados
+      a la aplicación desde su cuenta de Google.
+    </p>
+    <p>
+      El usuario puede borrar los datos desde la configuración del navegador,
+      desde las opciones disponibles en la Extensión, eliminando los datos de la
+      aplicación en Google Drive o desinstalando la Extensión.
+    </p>
+
+    <h2>Seguridad y cambios</h2>
+    <p>
+      Las solicitudes externas utilizan HTTPS. Ningún almacenamiento o método
+      de transmisión es infalible, pero la Extensión limita el acceso a lo
+      necesario. Esta política podrá actualizarse cuando cambien sus funciones;
+      la fecha superior reflejará la revisión más reciente.
+    </p>
+
+    <h2>Contacto</h2>
+    <p>
+      Para preguntas o solicitudes, abre un reporte en
+      <a href="https://github.com/Rodolfo0/CleanNewTab/issues">GitHub Issues</a>.
+    </p>
+  </article>
+</BaseLayout>

@@ -1,0 +1,189 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+---
+
+<BaseLayout
+  title="Clean New Tab — Tu nueva pestaña, a tu manera"
+  description="Clean New Tab reemplaza la nueva pestaña con espacios, accesos directos, búsqueda y fondos personalizables."
+>
+  <section class="hero">
+    <div class="hero-copy">
+      <p class="eyebrow">Extensión para Chrome y Firefox</p>
+      <h1>Clean New Tab</h1>
+      <p class="hero-lead">
+        Una nueva pestaña limpia y personalizable para organizar tus accesos,
+        búsquedas y espacios sin ruido.
+      </p>
+      <div class="hero-actions">
+        <a class="button button-primary" href="https://github.com/Rodolfo0/CleanNewTab/releases">
+          Ver versiones
+        </a>
+        <a class="button button-secondary" href="#privacy-first">
+          Cómo protegemos tus datos
+        </a>
+      </div>
+    </div>
+    <div class="extension-preview" data-preview-root aria-label="Vista interactiva de Clean New Tab">
+      <aside class="preview-sidebar" aria-label="Tableros de ejemplo">
+        <span class="preview-logo" aria-hidden="true">C</span>
+        <div class="preview-tabs" role="tablist" aria-label="Cambiar tablero">
+          <button
+            class="preview-tab is-active"
+            type="button"
+            role="tab"
+            id="tab-inicio"
+            aria-controls="board-inicio"
+            aria-selected="true"
+            data-board-tab="inicio"
+          >
+            <span class="tab-icon tab-icon-home" aria-hidden="true">⌂</span>
+            <span>Inicio</span>
+          </button>
+          <button
+            class="preview-tab"
+            type="button"
+            role="tab"
+            id="tab-trabajo"
+            aria-controls="board-trabajo"
+            aria-selected="false"
+            data-board-tab="trabajo"
+            tabindex="-1"
+          >
+            <span class="tab-icon tab-icon-work" aria-hidden="true">◇</span>
+            <span>Trabajo</span>
+          </button>
+        </div>
+        <span class="preview-edit" aria-hidden="true">•••</span>
+      </aside>
+
+      <div class="preview-canvas">
+        <section
+          class="preview-board preview-board-home is-active"
+          role="tabpanel"
+          id="board-inicio"
+          aria-labelledby="tab-inicio"
+          data-board-panel="inicio"
+        >
+          <div class="mock-search"><span>Buscar en la web</span><b>Buscar</b></div>
+          <div class="mock-date"><small>Hoy</small><strong>Miércoles, 6 de agosto</strong></div>
+          <div class="mock-links">
+            <span class="mock-heading">Favoritos</span>
+            <div><i>G</i><b>GitHub</b></div>
+            <div><i>N</i><b>Notas</b></div>
+            <div><i>M</i><b>Música</b></div>
+          </div>
+          <div class="mock-note"><small>Para hoy</small><strong>Un espacio tranquilo para empezar.</strong></div>
+        </section>
+
+        <section
+          class="preview-board preview-board-work"
+          role="tabpanel"
+          id="board-trabajo"
+          aria-labelledby="tab-trabajo"
+          data-board-panel="trabajo"
+          hidden
+        >
+          <div class="mock-work-title"><small>Espacio</small><strong>Trabajo</strong></div>
+          <div class="mock-work-search"><span>Buscar proyectos o abrir un enlace</span><b>↵</b></div>
+          <div class="mock-projects">
+            <span class="mock-heading">Proyectos</span>
+            <div><i>01</i><span><b>Clean New Tab</b><small>Diseño y publicación</small></span></div>
+            <div><i>02</i><span><b>Sitio público</b><small>Verificación OAuth</small></span></div>
+          </div>
+          <div class="mock-focus"><small>En foco</small><strong>Preparar la siguiente versión</strong><span>3 tareas pendientes</span></div>
+        </section>
+      </div>
+    </div>
+  </section>
+
+  <section id="features" class="section">
+    <p class="eyebrow">Lo esencial, bien organizado</p>
+    <h2>Una página que se adapta a tu forma de navegar</h2>
+    <div class="feature-grid">
+      <article>
+        <span class="feature-number">01</span>
+        <h3>Espacios personales</h3>
+        <p>Separa trabajo, estudio y vida personal en tableros independientes.</p>
+      </article>
+      <article>
+        <span class="feature-number">02</span>
+        <h3>Elementos flexibles</h3>
+        <p>Combina enlaces, grupos, títulos, fecha y motores de búsqueda.</p>
+      </article>
+      <article>
+        <span class="feature-number">03</span>
+        <h3>Diseño a tu gusto</h3>
+        <p>Ajusta posición, tamaño, tema, fondos e iconos para cada espacio.</p>
+      </article>
+    </div>
+  </section>
+
+  <section id="privacy-first" class="privacy-callout">
+    <div>
+      <p class="eyebrow">Privacidad desde el diseño</p>
+      <h2>Tus tableros permanecen bajo tu control</h2>
+    </div>
+    <div>
+      <p>
+        La configuración se guarda en tu navegador. La sincronización con
+        Google Drive es opcional y utiliza la carpeta privada de datos de la
+        aplicación; Clean New Tab no vende tus datos ni crea perfiles publicitarios.
+      </p>
+      <a class="text-link" href={`${import.meta.env.BASE_URL}privacy/`}>
+        Leer la política de privacidad →
+      </a>
+    </div>
+  </section>
+
+  <section class="section final-cta">
+    <p class="eyebrow">Código abierto</p>
+    <h2>Conoce cómo funciona Clean New Tab</h2>
+    <p>Consulta el código, reporta un problema o propón una mejora desde GitHub.</p>
+    <a class="button button-primary" href="https://github.com/Rodolfo0/CleanNewTab">
+      Abrir repositorio
+    </a>
+  </section>
+
+  <script>
+    const preview = document.querySelector<HTMLElement>("[data-preview-root]");
+
+    if (preview) {
+      const previewRoot = preview;
+      const tabs = Array.from(
+        previewRoot.querySelectorAll<HTMLButtonElement>("[data-board-tab]"),
+      );
+      const panels = Array.from(
+        previewRoot.querySelectorAll<HTMLElement>("[data-board-panel]"),
+      );
+
+      function activateBoard(boardId: string) {
+        tabs.forEach((tab) => {
+          const isActive = tab.dataset.boardTab === boardId;
+          tab.classList.toggle("is-active", isActive);
+          tab.setAttribute("aria-selected", String(isActive));
+          tab.tabIndex = isActive ? 0 : -1;
+        });
+
+        panels.forEach((panel) => {
+          const isActive = panel.dataset.boardPanel === boardId;
+          panel.classList.toggle("is-active", isActive);
+          panel.hidden = !isActive;
+        });
+
+        previewRoot.dataset.activeBoard = boardId;
+      }
+
+      tabs.forEach((tab, index) => {
+        tab.addEventListener("click", () => activateBoard(tab.dataset.boardTab ?? "inicio"));
+        tab.addEventListener("keydown", (event) => {
+          if (event.key !== "ArrowDown" && event.key !== "ArrowUp") return;
+          event.preventDefault();
+          const direction = event.key === "ArrowDown" ? 1 : -1;
+          const nextTab = tabs[(index + direction + tabs.length) % tabs.length];
+          nextTab.focus();
+          activateBoard(nextTab.dataset.boardTab ?? "inicio");
+        });
+      });
+    }
+  </script>
+</BaseLayout>
