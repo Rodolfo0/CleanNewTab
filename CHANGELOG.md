@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.7.0](https://github.com/Rodolfo0/CleanNewTab/compare/clean-new-tab-v0.6.0...clean-new-tab-v0.7.0) (2026-08-11)
+
+
+### Features
+
+* **uninstall:** add uninstall page and context menu ([2f316dd](https://github.com/Rodolfo0/CleanNewTab/commit/2f316ddcbb64483673d59faebc6ed1e797d4edc0))
+* **website:** add Astro site and GitHub Pages deploy ([52058c7](https://github.com/Rodolfo0/CleanNewTab/commit/52058c7099179766b406a678bebba22e17cb4c7a))
+* **website:** migrate site deployment to Cloudflare Pages ([68c913f](https://github.com/Rodolfo0/CleanNewTab/commit/68c913fffd2eb9b98e076b93bd64262e697f445b))
+
 ## [0.6.0](https://github.com/Rodolfo0/CustomNewTab/compare/clean-new-tab-v0.5.2...clean-new-tab-v0.6.0) (2026-08-05)
 
 
