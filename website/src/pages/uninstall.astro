@@ -1,0 +1,43 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+---
+
+<BaseLayout
+  title="Hasta pronto — Clean New Tab"
+  description="Página de despedida y soporte de Clean New Tab."
+  noindex
+>
+  <section class="uninstall-page">
+    <div class="uninstall-mark" aria-hidden="true">
+      <img src={`${import.meta.env.BASE_URL}logo.svg`} alt="" />
+    </div>
+    <p class="eyebrow">Gracias por haber usado Clean New Tab</p>
+    <h1>Hasta pronto.</h1>
+    <p class="uninstall-lead">
+      Sentimos que la extensión no haya sido lo que necesitabas. Si algo no
+      funcionó o echaste de menos una función, tu comentario puede ayudarnos a
+      mejorarla.
+    </p>
+
+    <div class="uninstall-actions">
+      <a
+        class="button button-primary"
+        href="https://github.com/Rodolfo0/CleanNewTab/issues/new"
+      >
+        Contarnos qué pasó
+      </a>
+      <a class="button button-secondary" href={import.meta.env.BASE_URL}>
+        Volver al sitio
+      </a>
+    </div>
+
+    <aside class="uninstall-note">
+      <strong>Sobre tus datos</strong>
+      <p>
+        Los datos guardados localmente se eliminan con la extensión. Si usaste
+        la sincronización opcional, puedes administrar los datos de la aplicación
+        desde tu cuenta de Google Drive.
+      </p>
+    </aside>
+  </section>
+</BaseLayout>

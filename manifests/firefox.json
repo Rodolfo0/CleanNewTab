@@ -11,6 +11,7 @@
     "128": "icons/logo-128.png"
   },
   "permissions": [
+    "contextMenus",
     "identity",
     "storage"
   ],

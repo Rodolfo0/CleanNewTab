@@ -12,6 +12,13 @@ const suggestionHosts = new Set([
 ]);
 
 const extensionApi = browser;
+const uninstallUrl = "https://cleannewtab.com/uninstall/";
+const contextMenuRootId = "clean-new-tab-links";
+const contextMenuUrls: Record<string, string> = {
+  "clean-new-tab-homepage": "https://cleannewtab.com/",
+  "clean-new-tab-privacy": "https://cleannewtab.com/privacy/",
+  "clean-new-tab-support": "https://github.com/Rodolfo0/CleanNewTab/issues",
+};
 const driveFileName = "clean-new-tab-workspace-v1.json";
 const driveWallpaperFileName = "clean-new-tab-wallpapers-v1.json";
 const driveScope = "https://www.googleapis.com/auth/drive.appdata";
@@ -52,6 +59,48 @@ type DriveMessage = {
 };
 
 type JsonObject = Record<string, unknown>;
+
+void extensionApi.runtime.setUninstallURL(uninstallUrl).catch((error: unknown) => {
+  console.error("No se pudo registrar la página de desinstalación.", error);
+});
+
+async function setupContextMenu() {
+  await extensionApi.contextMenus.removeAll();
+  extensionApi.contextMenus.create({
+    id: contextMenuRootId,
+    title: "Clean New Tab",
+    contexts: ["page"],
+  });
+  extensionApi.contextMenus.create({
+    id: "clean-new-tab-homepage",
+    parentId: contextMenuRootId,
+    title: "Visitar sitio web",
+    contexts: ["page"],
+  });
+  extensionApi.contextMenus.create({
+    id: "clean-new-tab-privacy",
+    parentId: contextMenuRootId,
+    title: "Política de privacidad",
+    contexts: ["page"],
+  });
+  extensionApi.contextMenus.create({
+    id: "clean-new-tab-support",
+    parentId: contextMenuRootId,
+    title: "Soporte y problemas",
+    contexts: ["page"],
+  });
+}
+
+extensionApi.runtime.onInstalled.addListener(() => {
+  void setupContextMenu();
+});
+
+extensionApi.contextMenus.onClicked.addListener((info) => {
+  const url = contextMenuUrls[String(info.menuItemId)];
+  if (url) {
+    void extensionApi.tabs.create({ url });
+  }
+});
 
 function isRecord(value: unknown): value is JsonObject {
   return typeof value === "object" && value !== null;

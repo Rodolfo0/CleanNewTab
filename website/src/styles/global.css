@@ -119,6 +119,16 @@ h3 { margin: 80px 0 12px; font-size: 1.35rem; }
 .legal-page code { padding: .15em .35em; background: #e6e6df; border-radius: 4px; }
 .legal-page a { font-weight: 650; }
 
+.uninstall-page { width: min(760px, calc(100% - 40px)); min-height: calc(100vh - 190px); display: flex; flex-direction: column; justify-content: center; margin-inline: auto; padding-block: 90px; }
+.uninstall-mark { width: 110px; height: 68px; margin-bottom: 34px; }
+.uninstall-mark img { display: block; width: 100%; height: 100%; object-fit: contain; }
+.uninstall-page h1 { font-size: clamp(4rem, 10vw, 7rem); }
+.uninstall-lead { max-width: 650px; margin: 28px 0 0; color: #5f615c; font-size: clamp(1.08rem, 2vw, 1.3rem); line-height: 1.65; }
+.uninstall-actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 36px; }
+.uninstall-note { max-width: 620px; margin: 52px 0 0; padding-top: 24px; color: #797b74; border-top: 1px solid #d9d9d1; font-size: .92rem; }
+.uninstall-note strong { color: #20211f; font-size: 1rem; }
+.uninstall-note p { margin: 10px 0 0; line-height: 1.65; }
+
 .site-footer { min-height: 110px; display: flex; align-items: center; justify-content: space-between; color: #696b65; border-top: 1px solid #d9d9d1; }
 
 @media (max-width: 760px) {
