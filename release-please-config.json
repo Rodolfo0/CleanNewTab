@@ -5,6 +5,10 @@
       "release-type": "node",
       "package-name": "clean-new-tab",
       "include-v-in-tag": true,
+      "exclude-paths": [
+        "website/**",
+        ".github/workflows/deploy-website.yml"
+      ],
       "extra-files": [
         {
           "type": "json",

@@ -29,7 +29,7 @@ a { color: inherit; }
 }
 
 .brand { display: flex; align-items: center; gap: 10px; font-weight: 760; text-decoration: none; }
-.brand-mark { display: grid; place-items: center; width: 42px; height: 34px; }
+.brand-mark { display: grid; place-items: center; width: 36px; height: 36px; }
 .brand-mark img, .preview-logo img { display: block; width: 100%; height: 100%; object-fit: contain; }
 nav, .site-footer div { display: flex; gap: 24px; }
 nav a, .site-footer a { color: #5f615c; font-size: .92rem; text-decoration: none; }
@@ -47,7 +47,7 @@ h1 { margin: 0; max-width: 800px; font-size: clamp(3.4rem, 8vw, 6.7rem); letter-
 
 .extension-preview { height: 465px; display: grid; grid-template-columns: 92px 1fr; overflow: hidden; background: #e5e6dd; border: 1px solid #d0d1c7; border-radius: 28px; box-shadow: 0 30px 80px rgba(32,33,31,.14); transform: rotate(1deg); transition: background-color .35s ease; }
 .preview-sidebar { display: flex; flex-direction: column; align-items: center; padding: 18px 10px; background: rgba(250,250,246,.88); border-right: 1px solid rgba(32,33,31,.1); backdrop-filter: blur(16px); }
-.preview-logo { display: grid; place-items: center; width: 44px; height: 35px; }
+.preview-logo { display: grid; place-items: center; width: 38px; height: 38px; }
 .preview-tabs { width: 100%; display: grid; gap: 8px; margin-top: 34px; }
 .preview-tab { width: 100%; display: grid; justify-items: center; gap: 5px; padding: 9px 4px; color: #7a7c75; background: transparent; border: 0; border-radius: 12px; font: inherit; font-size: .64rem; cursor: pointer; transition: color .2s ease, background-color .2s ease, transform .2s ease; }
 .preview-tab:hover { color: #20211f; background: rgba(32,33,31,.06); transform: translateY(-1px); }
@@ -120,7 +120,7 @@ h3 { margin: 80px 0 12px; font-size: 1.35rem; }
 .legal-page a { font-weight: 650; }
 
 .uninstall-page { width: min(760px, calc(100% - 40px)); min-height: calc(100vh - 190px); display: flex; flex-direction: column; justify-content: center; margin-inline: auto; padding-block: 90px; }
-.uninstall-mark { width: 110px; height: 68px; margin-bottom: 34px; }
+.uninstall-mark { width: 76px; height: 76px; margin-bottom: 34px; }
 .uninstall-mark img { display: block; width: 100%; height: 100%; object-fit: contain; }
 .uninstall-page h1 { font-size: clamp(4rem, 10vw, 7rem); }
 .uninstall-lead { max-width: 650px; margin: 28px 0 0; color: #5f615c; font-size: clamp(1.08rem, 2vw, 1.3rem); line-height: 1.65; }
