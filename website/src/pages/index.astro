@@ -25,7 +25,9 @@ import BaseLayout from "../layouts/BaseLayout.astro";
     </div>
     <div class="extension-preview" data-preview-root aria-label="Vista interactiva de Clean New Tab">
       <aside class="preview-sidebar" aria-label="Tableros de ejemplo">
-        <span class="preview-logo" aria-hidden="true">C</span>
+        <span class="preview-logo" aria-hidden="true">
+          <img src={`${import.meta.env.BASE_URL}logo.svg`} alt="" />
+        </span>
         <div class="preview-tabs" role="tablist" aria-label="Cambiar tablero">
           <button
             class="preview-tab is-active"

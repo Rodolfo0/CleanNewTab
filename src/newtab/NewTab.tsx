@@ -421,7 +421,7 @@ export function NewTab() {
     iconLink.href =
       tabIcon === ""
         ? "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg'/%3E"
-        : tabIcon ?? "/favicon.svg";
+        : tabIcon ?? "/logo.svg";
   }, [tabIcon]);
 
   useEffect(() => {
