@@ -1,4 +1,4 @@
-import { clampItemLayout, isSearchEngineId } from '../model/boardItems'
+import { clampItemLayout, isSearchEngineId, parseNavigableUrl } from '../model/boardItems'
 import type { Board, BoardItem } from '../model/boardItems'
 import { isComponentThemeId, type ComponentThemeId } from '../themes/componentThemes'
 
@@ -104,11 +104,13 @@ function isValidItem(item: unknown): item is BoardItem {
   }
 
   if (item.type === 'link') {
-    return typeof item.url === 'string'
+    return typeof item.url === 'string' && parseNavigableUrl(item.url).ok
   }
 
   if (item.type === 'group') {
-    return Array.isArray(item.links)
+    return Array.isArray(item.links) && item.links.every(
+      (link) => isRecord(link) && link.type === 'link' && isValidItem(link),
+    )
   }
 
   if (item.type === 'search') {
@@ -129,6 +131,21 @@ function normalizeBoard(board: Board): Board {
       const normalizedItem = {
         ...item,
         layout: clampItemLayout(item, item.layout),
+      }
+
+      if (item.type === 'link') {
+        const result = parseNavigableUrl(item.url)
+        return { ...normalizedItem, url: result.ok ? result.url : item.url }
+      }
+
+      if (item.type === 'group') {
+        return {
+          ...normalizedItem,
+          links: item.links.map((link) => {
+            const result = parseNavigableUrl(link.url)
+            return { ...link, url: result.ok ? result.url : link.url }
+          }),
+        }
       }
 
       return item.type === 'search'

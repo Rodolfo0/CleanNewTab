@@ -3,9 +3,11 @@ import { Stack, TextInput } from "@mantine/core";
 import { LinkIconConfig, VariantConfig } from "../shared/configSections";
 
 import type { ElementConfigProps } from "../shared/configTypes";
-import type { LinkItem } from "../../model/boardItems";
+import { normalizeUrl, parseNavigableUrl, type LinkItem } from "../../model/boardItems";
 
 export function LinkConfig({ item, onChange }: ElementConfigProps<LinkItem>) {
+  const urlResult = parseNavigableUrl(item.url);
+
   return (
     <Stack gap="md">
       <Stack gap={8}>
@@ -24,6 +26,11 @@ export function LinkConfig({ item, onChange }: ElementConfigProps<LinkItem>) {
           onChange={(event) =>
             onChange(item.id, { url: event.currentTarget.value })
           }
+          onBlur={(event) => {
+            const result = parseNavigableUrl(event.currentTarget.value);
+            if (result.ok) onChange(item.id, { url: normalizeUrl(result.url) });
+          }}
+          error={urlResult.ok ? undefined : urlResult.error}
         />
       </Stack>
 

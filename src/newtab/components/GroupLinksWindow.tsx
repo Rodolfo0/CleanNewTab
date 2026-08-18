@@ -26,7 +26,12 @@ import {
 } from "../icons/brandIconData";
 
 import type { GroupItem, LinkItem } from "../model/boardItems";
-import { getItemDisplay, normalizeUrl } from "../model/boardItems";
+import {
+  getItemDisplay,
+  getNavigableUrlError,
+  normalizeUrl,
+  parseNavigableUrl,
+} from "../model/boardItems";
 import {
   normalizePhosphorIconName,
   PhosphorIcon,
@@ -106,16 +111,16 @@ export function GroupLinksWindow({
 
   function addLink() {
     const nextTitle = title.trim();
-    const nextUrl = url.trim();
+    const parsedUrl = parseNavigableUrl(url);
 
-    if (!item || !nextTitle || !nextUrl) {
+    if (!item || !nextTitle || !parsedUrl.ok) {
       return;
     }
 
     onAddGroupLink(item.id, {
       linkIcon: newLinkIcon,
       title: nextTitle,
-      url: nextUrl,
+      url: parsedUrl.url,
     });
     setTitle("");
     setUrl("");
@@ -290,7 +295,7 @@ export function GroupLinksWindow({
         withBorder
         radius="md"
         shadow="lg"
-        className="w-[340px] overflow-hidden bg-white"
+        className="w-85 overflow-hidden bg-white"
         style={{
           maxHeight: "calc(100vh - 24px)",
           position: "fixed",
@@ -355,10 +360,13 @@ export function GroupLinksWindow({
                             })
                           }
                           onBlur={(event) =>
-                            onUpdateGroupLink(item.id, link.id, {
-                              url: normalizeUrl(event.currentTarget.value),
-                            })
+                            parseNavigableUrl(event.currentTarget.value).ok
+                              ? onUpdateGroupLink(item.id, link.id, {
+                                  url: normalizeUrl(event.currentTarget.value),
+                                })
+                              : undefined
                           }
+                          error={getNavigableUrlError(link.url)}
                         />
                       </Stack>
                     ) : (
@@ -443,6 +451,13 @@ export function GroupLinksWindow({
                 size="xs"
                 value={url}
                 onChange={(event) => setUrl(event.currentTarget.value)}
+                onBlur={(event) => {
+                  const result = parseNavigableUrl(event.currentTarget.value);
+                  if (result.ok) setUrl(result.url);
+                }}
+                error={
+                  url ? getNavigableUrlError(url) : undefined
+                }
               />
             </Group>
             <PopularSitesList
@@ -473,6 +488,7 @@ export function GroupLinksWindow({
               color="dark"
               size="xs"
               leftSection={<PlusIcon size={14} />}
+              disabled={!title.trim() || !parseNavigableUrl(url).ok}
               onClick={addLink}
             >
               Agregar link

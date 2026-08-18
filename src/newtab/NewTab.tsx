@@ -24,6 +24,7 @@ import {
   getNextLayout,
   getViewportLeft,
   getViewportTop,
+  isNavigableUrl,
   reanchorLayout,
   type BoardItem as BoardItemData,
   type BoardItemType,
@@ -204,7 +205,6 @@ export function NewTab() {
   const [tabIcon, setTabIcon] = useState<string | null>(loadTabIcon);
   const tabIconRef = useRef(tabIcon);
   const [tabTitle, setTabTitle] = useState(loadTabTitle);
-  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(true);
   const activeSpace =
     workspace.spaces.find((space) => space.id === workspace.activeSpaceId) ??
     workspace.spaces[0];
@@ -702,6 +702,15 @@ export function NewTab() {
   }
 
   function saveEditing() {
+    const hasInvalidUrl = draftBoard.items.some((item) =>
+      item.type === "link"
+        ? !isNavigableUrl(item.url)
+        : item.type === "group"
+          ? item.links.some((link) => !isNavigableUrl(link.url))
+          : false,
+    );
+    if (hasInvalidUrl) return;
+
     const nextBoard = copyBoard(draftBoard);
 
     setWorkspace((currentWorkspace) => ({
@@ -1681,14 +1690,10 @@ export function NewTab() {
     <main className="h-screen w-full overflow-hidden bg-[#f7f8fa] text-[#171717]">
       <SpacesSidebar
         activeSpaceId={workspace.activeSpaceId}
-        isCollapsed={isSidebarCollapsed}
         spaces={workspace.spaces}
         onAddSpace={addSpace}
         onDeleteSpace={deleteSpace}
         onSelectSpace={selectSpace}
-        onToggleCollapsed={() =>
-          setIsSidebarCollapsed((currentValue) => !currentValue)
-        }
         onUpdateSpace={updateSpace}
       />
       <section
@@ -1725,6 +1730,13 @@ export function NewTab() {
           }}
           driveState={driveState}
           isEditing={isEditing}
+          saveDisabled={draftBoard.items.some((item) =>
+            item.type === "link"
+              ? !isNavigableUrl(item.url)
+              : item.type === "group"
+                ? item.links.some((link) => !isNavigableUrl(link.url))
+                : false,
+          )}
           onAdd={() =>
             setFloatingWindow((current) => (current === "add" ? null : "add"))
           }
@@ -1819,7 +1831,6 @@ export function NewTab() {
           <div className="grid min-h-screen place-items-center px-5">
             <EmptyBoard
               isEditing={isEditing}
-              onEdit={startEditing}
               onAdd={() => setFloatingWindow("add")}
             />
           </div>

@@ -1,8 +1,15 @@
 # Auditoría completa de código y producto
 
-Fecha: 5 de agosto de 2026  
-Versión revisada: `0.6.0`  
+Fecha original: 5 de agosto de 2026
+Última revisión: 18 de agosto de 2026
+Versión revisada: `0.7.0`
 Alcance: extensión completa, interfaz de nueva pestaña, elementos y variantes, persistencia, importación/exportación, fondos, historial, sugerencias, sincronización con Drive, OAuth Worker, scripts de empaquetado y workflows de GitHub Actions.
+
+> Revisión 0.7.0: `package.json`, `package-lock.json`, manifests de Chrome y Firefox
+> y `.release-please-manifest.json` están alineados en `0.7.0`. Esta versión añadió
+> la página/menú de desinstalación y el sitio público; esos cambios no invalidan los
+> hallazgos funcionales de la nueva pestaña. El P0 de URLs se corrigió durante esta
+> revisión y el resto de hallazgos conserva su prioridad salvo indicación expresa.
 
 ## Resumen ejecutivo
 
@@ -40,26 +47,28 @@ Recomendación general: antes de añadir muchos elementos nuevos, cerrar primero
 
 ### P0 — Restringir y normalizar URLs en todos los puntos de entrada
 
-**Evidencia**
+**Estado en 0.7.0 (18 de agosto de 2026): resuelto.**
 
-- `normalizeUrl` solo se usa al crear links (`src/newtab/model/boardItemFactory.ts`).
-- `LinkConfig` guarda directamente el texto introducido.
-- `updateGroupLink` guarda el patch directamente.
-- `isValidItem` solo comprueba que `url` sea un string.
-- `GroupRender` y `BoardItem` colocan el valor directamente en `href`.
+**Verificación actual**
 
-**Problema**
+- `parseNavigableUrl` es el punto único de validación y devuelve un resultado tipado.
+- Solo se permiten explícitamente `http:` y `https:`; esquemas como `javascript:`,
+  `data:` y `file:` se rechazan.
+- Las URLs sin esquema se completan con `https://` y `URL` normaliza host, IDN,
+  puerto y ruta.
+- La creación, la edición de links, los links de grupo y la importación usan el
+  mismo parser.
+- La importación valida recursivamente los links internos de cada grupo y normaliza
+  las URLs aceptadas.
+- La interfaz muestra el error inline y desactiva “Guardar” o “Agregar link” mientras
+  exista una URL inválida.
+- El historial reciente ya filtraba entradas para admitir solo `http/https`.
 
-Una URL creada inicialmente recibe `https://`, pero al editarla o importarla puede quedar sin esquema, con un esquema no deseado (`javascript:`, `data:`, `file:` u otro) o ser inválida. Aunque la CSP del navegador bloquee algunos casos, la seguridad no debería depender de ella. También hay comportamiento inconsistente: el mismo texto funciona al crear, pero puede comportarse distinto al editar.
+**Pendiente de cobertura**
 
-**Recomendación**
-
-- Crear una sola función `parseNavigableUrl(value)` que devuelva un resultado tipado.
-- Permitir explícitamente `https:` y, si el producto lo necesita, `http:`.
-- Normalizar al perder foco o al guardar, no en cada pulsación.
-- Reutilizarla en creación, edición, links de grupos, sitios recientes e importación.
-- Mostrar un error inline y desactivar “Guardar” si la URL no es válida.
-- Añadir pruebas para URL sin esquema, espacios, IDN, puertos, `localhost`, esquemas bloqueados y cadenas vacías.
+- Añadir una suite automatizada para URL sin esquema, espacios, IDN, puertos,
+  `localhost`, esquemas bloqueados y cadenas vacías. El repositorio todavía no
+  cuenta con infraestructura de pruebas.
 
 ### P1 — Evitar que todos los elementos nuevos se superpongan
 

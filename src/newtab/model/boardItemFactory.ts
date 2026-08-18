@@ -13,6 +13,7 @@ import type {
 } from "./boardItemTypes";
 import { defaultTitleStyle } from "./boardItemPresentation";
 import type { SearchEngineId } from "./searchEngines";
+import { parseNavigableUrl } from "./navigableUrl";
 
 const DEFAULT_ITEM_WIDTH = 280;
 const DEFAULT_ITEM_HEIGHT = 76;
@@ -49,10 +50,8 @@ export function cloneBoardItem(item: BoardItem): BoardItem {
 }
 
 export function normalizeUrl(value: string) {
-  const url = value.trim();
-  if (!url) return "";
-  if (/^https?:\/\//i.test(url)) return url;
-  return `https://${url}`;
+  const result = parseNavigableUrl(value);
+  return result.ok ? result.url : "";
 }
 
 function getDefaultSize(type: BoardItemType): Pick<BoardLayout, "width" | "height"> {
