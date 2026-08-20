@@ -11,6 +11,7 @@ import { useEdgeDrawer } from "../hooks/useEdgeDrawer";
 type BoardToolbarProps = {
   colorScheme: "dark" | "light";
   isEditing: boolean;
+  localSaveState: "saved" | "pending" | "error";
   saveDisabled?: boolean;
   driveConnected: boolean;
   driveState: DriveSyncState;
@@ -42,6 +43,7 @@ export function BoardToolbar({
   driveDetails,
   driveState,
   isEditing,
+  localSaveState,
   saveDisabled = false,
   onAdd,
   onCancel,
@@ -65,6 +67,7 @@ export function BoardToolbar({
     disconnected: "Sincronizar mi configuración con Drive",
     error: "Reintentar sincronización con Drive",
     pending: "Cambios pendientes de sincronizar",
+    paused: "Drive conectado · sincronización pausada",
     synced: "Configuración sincronizada con Drive",
     syncing: "Sincronizando con Google Drive…",
     unsupported: "Google Drive no está disponible en este navegador",
@@ -105,6 +108,29 @@ export function BoardToolbar({
         )}
       </button>
       <Group className="rounded-l-xl border border-r-0 border-[#d0d5dd] bg-white/94 p-1 shadow-sm backdrop-blur">
+        {localSaveState !== "saved" ? (
+          <Tooltip
+            label={
+              localSaveState === "error"
+                ? "Cambios no guardados localmente. Revisa el espacio o los permisos del navegador."
+                : "Guardando cambios localmente…"
+            }
+          >
+            <ActionIcon
+              aria-label={
+                localSaveState === "error"
+                  ? "Cambios no guardados localmente"
+                  : "Guardando cambios localmente"
+              }
+              color={localSaveState === "error" ? "red" : "yellow"}
+              radius="md"
+              size="lg"
+              variant="light"
+            >
+              <FloppyDiskIcon size={20} />
+            </ActionIcon>
+          </Tooltip>
+        ) : null}
         <Menu position="bottom-end" width={260} shadow="md" withinPortal>
           <Menu.Target>
             <Tooltip label={driveLabel}>

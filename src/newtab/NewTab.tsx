@@ -4,6 +4,7 @@ import { useHotkeys, useViewportSize } from "@mantine/hooks";
 import { useComputedColorScheme, useMantineColorScheme } from "@mantine/core";
 import { BoardItem } from "./components/BoardItem";
 import { BoardToolbar } from "./components/BoardToolbar";
+import type { DriveReconciliationChoice } from "./components/DriveReconciliationModal";
 import { EmptyBoard } from "./components/EmptyBoard";
 import { SpacesSidebar } from "./components/SpacesSidebar";
 import {
@@ -34,6 +35,7 @@ import {
   type SearchEngineId,
 } from "./model/boardItems";
 import { useWallpapers, type WallpaperExportData } from "./hooks/useSessionWallpaper";
+import { useToday } from "./hooks/useToday";
 import {
   createBoardSpace,
   parseImportedBoard,
@@ -41,6 +43,7 @@ import {
   workspaceStorage,
   type BoardBackgroundMode,
   type BoardSpace,
+  type BoardWorkspace,
 } from "./storage/boardStorage";
 import {
   sendDriveMessage,
@@ -82,6 +85,11 @@ const WallpaperWindow = lazy(() =>
 const TabIconWindow = lazy(() =>
   import("./components/TabIconWindow").then((module) => ({
     default: module.TabIconWindow,
+  })),
+);
+const DriveReconciliationModal = lazy(() =>
+  import("./components/DriveReconciliationModal").then((module) => ({
+    default: module.DriveReconciliationModal,
   })),
 );
 
@@ -126,16 +134,69 @@ const tabIconStorageKey = "clean-new-tab:tab-icon:v1";
 const tabTitleStorageKey = "clean-new-tab:tab-title:v1";
 const defaultTabTitle = "Nueva pestaña";
 const driveDeviceIdKey = "clean-new-tab:drive-device-id:v1";
+const driveSyncPausedKey = "clean-new-tab:drive-sync-paused:v1";
+
+type PendingDriveReconciliation = {
+  envelope: DriveWorkspaceEnvelope;
+  remoteWorkspace: BoardWorkspace;
+  wallpapers?: DriveWallpaperBundle;
+  tabIcon?: string | null;
+};
+
+type DriveSaveWaiter = {
+  reject: (error: unknown) => void;
+  resolve: () => void;
+};
+
+type PendingDriveSave = {
+  force: boolean;
+  waiters: DriveSaveWaiter[];
+};
+
+function mergeWorkspaces(local: BoardWorkspace, remote: BoardWorkspace): BoardWorkspace {
+  const localIds = new Set(local.spaces.map((space) => space.id));
+  return {
+    ...local,
+    spaces: [
+      ...local.spaces,
+      ...remote.spaces.filter((space) => !localIds.has(space.id)),
+    ],
+  };
+}
 
 function loadDriveDeviceId() {
-  const existing = window.localStorage.getItem(driveDeviceIdKey);
-  if (existing) {
-    return existing;
-  }
+  try {
+    const existing = window.localStorage.getItem(driveDeviceIdKey);
+    if (existing) {
+      return existing;
+    }
 
-  const deviceId = crypto.randomUUID();
-  window.localStorage.setItem(driveDeviceIdKey, deviceId);
-  return deviceId;
+    const deviceId = crypto.randomUUID();
+    window.localStorage.setItem(driveDeviceIdKey, deviceId);
+    return deviceId;
+  } catch {
+    return crypto.randomUUID();
+  }
+}
+
+function isDriveSyncPaused() {
+  try {
+    return window.localStorage.getItem(driveSyncPausedKey) === "true";
+  } catch {
+    return false;
+  }
+}
+
+function setDriveSyncPaused(paused: boolean) {
+  try {
+    if (paused) {
+      window.localStorage.setItem(driveSyncPausedKey, "true");
+    } else {
+      window.localStorage.removeItem(driveSyncPausedKey);
+    }
+  } catch {
+    // Drive remains usable for the current session when preferences cannot persist.
+  }
 }
 
 function loadTabIcon() {
@@ -192,14 +253,21 @@ export function NewTab() {
   const { setColorScheme } = useMantineColorScheme({ keepTransitions: true });
   const colorScheme = useComputedColorScheme("light");
   const [workspace, setWorkspace] = useState(() => workspaceStorage.load());
+  const [localSaveState, setLocalSaveState] = useState<"saved" | "pending" | "error">("saved");
   const [driveState, setDriveState] = useState<DriveSyncState>("checking");
   const [driveConnected, setDriveConnected] = useState(false);
   const [driveLastSavedAt, setDriveLastSavedAt] = useState<string | null>(null);
   const [driveLastCheckedAt, setDriveLastCheckedAt] = useState<string | null>(null);
+  const [pendingDriveReconciliation, setPendingDriveReconciliation] =
+    useState<PendingDriveReconciliation | null>(null);
   const driveDeviceId = useRef(loadDriveDeviceId());
   const driveEnabled = useRef(false);
   const driveRevision = useRef<number | null>(null);
   const driveConflict = useRef<DriveWorkspaceEnvelope | null>(null);
+  const driveSaveTimer = useRef<number | null>(null);
+  const scheduleDriveSaveRef = useRef<(delay: number) => void>(() => undefined);
+  const driveSaveRunning = useRef(false);
+  const pendingDriveSave = useRef<PendingDriveSave | null>(null);
   const isApplyingRemoteWorkspace = useRef(false);
   const initialActiveSpaceId = useRef(workspace.activeSpaceId);
   const [tabIcon, setTabIcon] = useState<string | null>(loadTabIcon);
@@ -228,7 +296,7 @@ export function NewTab() {
   });
   const importInputRef = useRef<HTMLInputElement>(null);
   const copiedItemRef = useRef<BoardItemData | null>(null);
-  const today = useMemo(() => dateFormatter.format(new Date()), []);
+  const today = useToday(dateFormatter);
   const currentPriorityWallpaperId = currentWallpaperBySpace[activeSpace.id];
   const priorityWallpaperIds = currentPriorityWallpaperId
     ? [currentPriorityWallpaperId]
@@ -252,6 +320,8 @@ export function NewTab() {
     () => ({ version: workspace.version, spaces: workspace.spaces }) as const,
     [workspace.spaces, workspace.version],
   );
+  const syncedWorkspaceRef = useRef(syncedWorkspace);
+  syncedWorkspaceRef.current = syncedWorkspace;
   const viewport = useViewportSize();
   const activeBoard = isEditing ? draftBoard : activeSpace.board;
   const componentThemeId = activeSpace.componentThemeId ?? "clean";
@@ -276,7 +346,18 @@ export function NewTab() {
   );
 
   useEffect(() => {
-    workspaceStorage.save(workspace);
+    const pendingTimeoutId = window.setTimeout(() => {
+      setLocalSaveState("pending");
+    }, 0);
+    const timeoutId = window.setTimeout(() => {
+      const result = workspaceStorage.save(workspace);
+      setLocalSaveState(result.ok ? "saved" : "error");
+    }, 400);
+
+    return () => {
+      window.clearTimeout(pendingTimeoutId);
+      window.clearTimeout(timeoutId);
+    };
   }, [workspace]);
 
   useEffect(() => {
@@ -306,6 +387,12 @@ export function NewTab() {
         driveEnabled.current = true;
         setDriveConnected(true);
 
+        if (isDriveSyncPaused()) {
+          driveEnabled.current = false;
+          setDriveState("paused");
+          return;
+        }
+
         const result = await sendDriveMessage<{
           kind: "empty" | "remote";
           envelope?: DriveWorkspaceEnvelope;
@@ -324,30 +411,12 @@ export function NewTab() {
         if (result.kind === "remote" && result.envelope && remoteWorkspace) {
           if (result.wallpapers) {
             await importWallpapersRef.current(result.wallpapers);
-          } else {
-            const localWallpapers = await exportWallpapersRef.current();
-            if (
-              localWallpapers.customWallpapers.length > 0 ||
-              tabIconRef.current !== null
-            ) {
-              await sendDriveMessage<{ ok: true }>({
-                type: "drive-save-wallpapers",
-                wallpapers: localWallpapers,
-                tabIcon: tabIconRef.current,
-              });
-            }
           }
           if (result.tabIcon !== undefined) {
             if (saveTabIconLocally(result.tabIcon)) {
               tabIconRef.current = result.tabIcon;
               setTabIcon(result.tabIcon);
             }
-          } else if (result.wallpapers && tabIconRef.current !== null) {
-            await sendDriveMessage<{ ok: true }>({
-              type: "drive-save-wallpapers",
-              wallpapers: await exportWallpapersRef.current(),
-              tabIcon: tabIconRef.current,
-            });
           }
           driveRevision.current = result.envelope.revision;
           setDriveLastSavedAt(result.envelope.updatedAt);
@@ -378,36 +447,14 @@ export function NewTab() {
       return;
     }
 
-    setDriveState("pending");
-    const timeout = window.setTimeout(() => {
-      setDriveState("syncing");
-      void sendDriveMessage<{
-        kind: "saved" | "conflict";
-        envelope: DriveWorkspaceEnvelope;
-      }>({
-        type: "drive-save",
-        workspace: syncedWorkspace,
-        deviceId: driveDeviceId.current,
-        expectedRevision: driveRevision.current,
-      })
-        .then((result) => {
-          setDriveLastCheckedAt(new Date().toISOString());
-          if (result.kind === "conflict") {
-            driveConflict.current = result.envelope;
-            setDriveLastSavedAt(result.envelope.updatedAt);
-            setDriveState("conflict");
-            return;
-          }
-          driveRevision.current = result.envelope.revision;
-          setDriveLastSavedAt(result.envelope.updatedAt);
-          driveConflict.current = null;
-          setDriveState("synced");
-        })
-        .catch(() => setDriveState("error"));
-    }, 1500);
-
-    return () => window.clearTimeout(timeout);
+    scheduleDriveSaveRef.current(1500);
   }, [syncedWorkspace]);
+
+  useEffect(() => () => {
+    if (driveSaveTimer.current !== null) {
+      window.clearTimeout(driveSaveTimer.current);
+    }
+  }, []);
 
   useEffect(() => {
     let iconLink = document.querySelector<HTMLLinkElement>('link[rel="icon"]');
@@ -465,51 +512,103 @@ export function NewTab() {
   const viewportWidth = viewport.width || CANVAS_WIDTH;
   const viewportHeight = viewport.height || CANVAS_HEIGHT;
 
-  async function saveWorkspaceToDrive(force = false) {
-    setDriveState("syncing");
-    try {
-      const result = await sendDriveMessage<{
+  async function performQueuedDriveSave(force: boolean) {
+    const result = await sendDriveMessage<{
         kind: "saved" | "conflict";
         envelope: DriveWorkspaceEnvelope;
       }>({
         type: "drive-save",
-        workspace: syncedWorkspace,
+        workspace: syncedWorkspaceRef.current,
+        wallpapers: await exportWallpapersRef.current(),
+        tabIcon: tabIconRef.current,
         deviceId: driveDeviceId.current,
         expectedRevision: driveRevision.current,
         force,
       });
 
-      if (result.kind === "conflict") {
-        driveConflict.current = result.envelope;
-        setDriveState("conflict");
-        return;
-      }
-
-      driveRevision.current = result.envelope.revision;
-      setDriveLastCheckedAt(new Date().toISOString());
+    setDriveLastCheckedAt(new Date().toISOString());
+    if (result.kind === "conflict") {
+      driveConflict.current = result.envelope;
       setDriveLastSavedAt(result.envelope.updatedAt);
-      driveConflict.current = null;
-      driveEnabled.current = true;
-      setDriveConnected(true);
-      setDriveState("synced");
-    } catch (error) {
-      setDriveState("error");
-      window.alert(error instanceof Error ? error.message : "No se pudo sincronizar con Drive.");
+      setDriveState("conflict");
+      throw new Error("Drive contiene cambios de otro dispositivo.");
     }
+
+    driveRevision.current = result.envelope.revision;
+    setDriveLastSavedAt(result.envelope.updatedAt);
+    driveConflict.current = null;
+    driveEnabled.current = true;
+    setDriveConnected(true);
   }
 
-  async function saveWallpapersToDrive() {
-    if (!driveEnabled.current) {
-      return;
+  async function drainDriveSaveQueue() {
+    if (driveSaveRunning.current) return;
+    driveSaveRunning.current = true;
+    let lastSaveFailed = false;
+
+    while (pendingDriveSave.current) {
+      const request = pendingDriveSave.current;
+      pendingDriveSave.current = null;
+      setDriveState("syncing");
+      try {
+        await performQueuedDriveSave(request.force);
+        lastSaveFailed = false;
+        request.waiters.forEach((waiter) => waiter.resolve());
+      } catch (error) {
+        lastSaveFailed = true;
+        request.waiters.forEach((waiter) => waiter.reject(error));
+        if (driveConflict.current) {
+          const supersededRequest = pendingDriveSave.current as PendingDriveSave | null;
+          pendingDriveSave.current = null;
+          supersededRequest?.waiters.forEach((waiter) => waiter.reject(error));
+          break;
+        }
+        setDriveState("error");
+      }
     }
 
-    const wallpapers = await exportWallpapersRef.current();
-    await sendDriveMessage<{ ok: true }>({
-      type: "drive-save-wallpapers",
-      wallpapers,
-      tabIcon: tabIconRef.current,
+    driveSaveRunning.current = false;
+    if (!driveConflict.current && !lastSaveFailed) setDriveState("synced");
+  }
+
+  function enqueueDriveSave(force = false) {
+    return new Promise<void>((resolve, reject) => {
+      const waiter = { reject, resolve };
+      if (pendingDriveSave.current) {
+        pendingDriveSave.current.force ||= force;
+        pendingDriveSave.current.waiters.push(waiter);
+      } else {
+        pendingDriveSave.current = { force, waiters: [waiter] };
+      }
+      void drainDriveSaveQueue();
     });
-    setDriveLastSavedAt(new Date().toISOString());
+  }
+
+  function scheduleDriveSave(delay: number) {
+    if (!driveEnabled.current) return;
+    if (driveSaveTimer.current !== null) {
+      window.clearTimeout(driveSaveTimer.current);
+    }
+    setDriveState("pending");
+    driveSaveTimer.current = window.setTimeout(() => {
+      driveSaveTimer.current = null;
+      void enqueueDriveSave().catch(() => undefined);
+    }, delay);
+  }
+  scheduleDriveSaveRef.current = scheduleDriveSave;
+
+  async function saveWorkspaceToDrive(force = false) {
+    if (driveSaveTimer.current !== null) {
+      window.clearTimeout(driveSaveTimer.current);
+      driveSaveTimer.current = null;
+    }
+    try {
+      await enqueueDriveSave(force);
+    } catch (error) {
+      if (!driveConflict.current) {
+        window.alert(error instanceof Error ? error.message : "No se pudo sincronizar con Drive.");
+      }
+    }
   }
 
   function scheduleWallpaperDriveSave() {
@@ -517,9 +616,7 @@ export function NewTab() {
       return;
     }
 
-    window.setTimeout(() => {
-      void saveWallpapersToDrive().catch(() => setDriveState("error"));
-    }, 100);
+    scheduleDriveSave(500);
   }
 
   async function handleDriveSync() {
@@ -528,8 +625,9 @@ export function NewTab() {
         "Drive contiene cambios realizados en otro dispositivo. Pulsa Aceptar para usar la versión de Drive o Cancelar para reemplazarla con este dispositivo.",
       );
       if (useDrive) {
+        const conflict = driveConflict.current;
         const remoteWorkspace = parseImportedSyncedWorkspace(
-          driveConflict.current.workspace,
+          conflict.workspace,
           workspace.activeSpaceId,
         );
         if (!remoteWorkspace) {
@@ -537,24 +635,30 @@ export function NewTab() {
           window.alert("La configuración de Drive no es válida.");
           return;
         }
-        driveRevision.current = driveConflict.current.revision;
+        if (conflict.resources) {
+          const assetResult = await importWallpapersRef.current(
+            conflict.resources.wallpapers,
+          );
+          if (!assetResult.ok) {
+            setDriveState("error");
+            window.alert(assetResult.message ?? "No se pudieron cargar los fondos de Drive.");
+            return;
+          }
+          updateTabIcon(conflict.resources.tabIcon, false);
+        }
+        driveRevision.current = conflict.revision;
         driveConflict.current = null;
         isApplyingRemoteWorkspace.current = true;
         setWorkspace(remoteWorkspace);
         setDriveState("synced");
       } else {
         await saveWorkspaceToDrive(true);
-        await saveWallpapersToDrive();
       }
       return;
     }
 
     if (driveEnabled.current) {
       await saveWorkspaceToDrive();
-      await saveWallpapersToDrive().catch((error) => {
-        setDriveState("error");
-        window.alert(error instanceof Error ? error.message : "No se pudieron sincronizar los fondos.");
-      });
       return;
     }
 
@@ -572,7 +676,6 @@ export function NewTab() {
         tabIcon: tabIconRef.current,
         deviceId: driveDeviceId.current,
       });
-      driveEnabled.current = true;
       setDriveConnected(true);
       driveRevision.current = result.envelope.revision;
       setDriveLastCheckedAt(new Date().toISOString());
@@ -586,33 +689,87 @@ export function NewTab() {
         if (!remoteWorkspace) {
           throw new Error("La configuración guardada en Drive no es válida.");
         }
-        const useDrive = window.confirm(
-          "Ya existe una configuración de Clean New Tab en Drive. Pulsa Aceptar para usarla en este dispositivo o Cancelar para reemplazarla con la configuración local.",
-        );
-        if (useDrive) {
-          if (result.wallpapers) {
-            const wallpaperResult = await importWallpapersRef.current(result.wallpapers);
-            if (!wallpaperResult.ok) {
-              throw new Error(wallpaperResult.message ?? "No se pudieron cargar los fondos de Drive.");
-            }
-          }
-          if (result.tabIcon !== undefined) {
-            updateTabIcon(result.tabIcon, false);
-          }
-          isApplyingRemoteWorkspace.current = true;
-          setWorkspace(remoteWorkspace);
-        } else {
-          await saveWorkspaceToDrive(true);
-          await saveWallpapersToDrive();
-          return;
-        }
+        driveEnabled.current = false;
+        setPendingDriveReconciliation({
+          envelope: result.envelope,
+          remoteWorkspace,
+          wallpapers: result.wallpapers,
+          tabIcon: result.tabIcon,
+        });
+        setDriveState("paused");
+        return;
       }
+      driveEnabled.current = true;
+      setDriveSyncPaused(false);
       setDriveState("synced");
     } catch (error) {
       driveEnabled.current = false;
       setDriveConnected(false);
       setDriveState("error");
       window.alert(error instanceof Error ? error.message : "No se pudo conectar con Drive.");
+    }
+  }
+
+  async function applyRemoteAssets(pending: PendingDriveReconciliation) {
+    if (pending.wallpapers) {
+      const result = await importWallpapersRef.current(pending.wallpapers);
+      if (!result.ok) {
+        throw new Error(result.message ?? "No se pudieron cargar los fondos de Drive.");
+      }
+    }
+    if (pending.tabIcon !== undefined) {
+      updateTabIcon(pending.tabIcon, false);
+    }
+  }
+
+  async function handleDriveReconciliation(choice: DriveReconciliationChoice) {
+    const pending = pendingDriveReconciliation;
+    if (!pending) return;
+
+    setPendingDriveReconciliation(null);
+    if (choice === "connect-only") {
+      setDriveSyncPaused(true);
+      driveEnabled.current = false;
+      setDriveState("paused");
+      return;
+    }
+
+    setDriveSyncPaused(false);
+    driveEnabled.current = true;
+    setDriveState("syncing");
+    try {
+      if (choice === "download") {
+        await applyRemoteAssets(pending);
+        isApplyingRemoteWorkspace.current = true;
+        setWorkspace(pending.remoteWorkspace);
+        setDriveState("synced");
+        return;
+      }
+
+      if (choice === "merge") {
+        await applyRemoteAssets(pending);
+        const merged = mergeWorkspaces(workspace, pending.remoteWorkspace);
+        isApplyingRemoteWorkspace.current = true;
+        setWorkspace(merged);
+        const result = await sendDriveMessage<{ kind: "saved"; envelope: DriveWorkspaceEnvelope }>({
+          type: "drive-save",
+          workspace: { version: merged.version, spaces: merged.spaces },
+          wallpapers: await exportWallpapersRef.current(),
+          tabIcon: tabIconRef.current,
+          deviceId: driveDeviceId.current,
+          expectedRevision: pending.envelope.revision,
+          force: true,
+        });
+        driveRevision.current = result.envelope.revision;
+        setDriveLastSavedAt(result.envelope.updatedAt);
+        setDriveState("synced");
+        return;
+      }
+
+      await saveWorkspaceToDrive(true);
+    } catch (error) {
+      setDriveState("error");
+      window.alert(error instanceof Error ? error.message : "No se pudo completar la sincronización.");
     }
   }
 
@@ -660,6 +817,8 @@ export function NewTab() {
       }
 
       driveRevision.current = result.envelope.revision;
+      driveEnabled.current = true;
+      setDriveSyncPaused(false);
       setDriveLastSavedAt(result.envelope.updatedAt);
       driveConflict.current = null;
       isApplyingRemoteWorkspace.current = true;
@@ -669,6 +828,17 @@ export function NewTab() {
       setDriveState("error");
       window.alert(error instanceof Error ? error.message : "No se pudo cargar la copia de Drive.");
     }
+  }
+
+  async function handleDriveUpload() {
+    if (driveConnected && !driveEnabled.current) {
+      setDriveSyncPaused(false);
+      driveEnabled.current = true;
+      await saveWorkspaceToDrive(true);
+      return;
+    }
+
+    await handleDriveSync();
   }
 
   async function handleDriveDisconnect() {
@@ -683,6 +853,7 @@ export function NewTab() {
     setDriveState("syncing");
     try {
       await sendDriveMessage<{ ok: true }>({ type: "drive-disconnect" });
+      setDriveSyncPaused(false);
       driveEnabled.current = false;
       setDriveConnected(false);
       driveRevision.current = null;
@@ -1730,6 +1901,7 @@ export function NewTab() {
           }}
           driveState={driveState}
           isEditing={isEditing}
+          localSaveState={localSaveState}
           saveDisabled={draftBoard.items.some((item) =>
             item.type === "link"
               ? !isNavigableUrl(item.url)
@@ -1745,7 +1917,7 @@ export function NewTab() {
           onDriveConnect={() => void handleDriveSync()}
           onDriveDisconnect={() => void handleDriveDisconnect()}
           onDriveDownload={() => void handleDriveDownload()}
-          onDriveUpload={() => void handleDriveSync()}
+          onDriveUpload={() => void handleDriveUpload()}
           onExport={() => void exportBoard()}
           onImport={requestImportBoard}
           onSave={saveEditing}
@@ -1756,6 +1928,17 @@ export function NewTab() {
           }
           onWallpapers={() => setFloatingWindow("wallpapers")}
         />
+        <Suspense fallback={null}>
+          {pendingDriveReconciliation ? (
+            <DriveReconciliationModal
+              opened
+              localBoards={workspace.spaces.length}
+              remoteBoards={pendingDriveReconciliation.remoteWorkspace.spaces.length}
+              onChoose={(choice) => void handleDriveReconciliation(choice)}
+              onClose={() => void handleDriveReconciliation("connect-only")}
+            />
+          ) : null}
+        </Suspense>
         <input
           ref={importInputRef}
           type="file"

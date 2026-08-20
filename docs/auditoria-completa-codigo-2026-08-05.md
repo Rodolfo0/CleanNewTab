@@ -1,15 +1,18 @@
 # Auditoría completa de código y producto
 
 Fecha original: 5 de agosto de 2026
-Última revisión: 18 de agosto de 2026
+Última revisión: 19 de agosto de 2026
 Versión revisada: `0.7.0`
 Alcance: extensión completa, interfaz de nueva pestaña, elementos y variantes, persistencia, importación/exportación, fondos, historial, sugerencias, sincronización con Drive, OAuth Worker, scripts de empaquetado y workflows de GitHub Actions.
 
 > Revisión 0.7.0: `package.json`, `package-lock.json`, manifests de Chrome y Firefox
 > y `.release-please-manifest.json` están alineados en `0.7.0`. Esta versión añadió
 > la página/menú de desinstalación y el sitio público; esos cambios no invalidan los
-> hallazgos funcionales de la nueva pestaña. El P0 de URLs se corrigió durante esta
-> revisión y el resto de hallazgos conserva su prioridad salvo indicación expresa.
+> hallazgos funcionales de la nueva pestaña. El P0 de URLs y los P1 de sincronización
+> atómica de Drive, actualización diaria de fecha y tolerancia a fallos de
+> `localStorage`, además de los P2 de debounce/cola de guardado y reducción del
+> bundle inicial, se corrigieron durante estas revisiones. El resto de hallazgos
+> conserva su prioridad salvo indicación expresa.
 
 ## Resumen ejecutivo
 
@@ -20,17 +23,19 @@ Las comprobaciones existentes pasan:
 - `npm run typecheck`: correcto.
 - `npm run lint`: correcto.
 - `npm run build`: correcto para Chromium y Firefox.
-- Advertencia del build: el chunk principal minificado mide aproximadamente `771 kB` (`219 kB` gzip), por encima del umbral de `500 kB` de Vite.
+- El entry principal mide aproximadamente `766 kB` minificado (`218.55 kB` gzip
+  decimal; `213.42 KiB` gzip). Vite aún advierte por superar `500 kB` minificados,
+  pero el build aplica además presupuestos reales de `220 KiB` gzip para JS y
+  `40 KiB` gzip para CSS.
 
-Sin embargo, no existe una suite de pruebas. La revisión manual encontró problemas que no cubren TypeScript ni ESLint. Los más importantes son:
+Sin embargo, no existe una suite de pruebas. La revisión manual mantiene problemas
+pendientes que no cubren TypeScript ni ESLint. Los más importantes son:
 
 1. Los elementos nuevos se agregan todos en el centro y se superponen.
 2. Aceptar datos remotos mientras existe una edición puede conservar y luego guardar un borrador local obsoleto.
-3. Las URLs editadas o importadas no se normalizan ni restringen a protocolos seguros.
-4. La validación de datos persistidos/importados es incompleta y acepta números no finitos, estilos inválidos y links internos mal formados.
-5. Tablero y fondos se sincronizan en archivos y operaciones separadas, por lo que una interrupción puede producir configuraciones incompatibles.
-6. Dos variantes de link existen y se renderizan, pero no están disponibles en la configuración.
-7. La fecha se calcula una sola vez y no cambia al cruzar medianoche.
+3. La validación de datos persistidos/importados es incompleta y acepta números no finitos, estilos inválidos y links internos mal formados.
+4. La validación y escritura transaccional de importaciones de fondos continúa pendiente.
+5. Dos variantes de link existen y se renderizan, pero no están disponibles en la configuración.
 
 Recomendación general: antes de añadir muchos elementos nuevos, cerrar primero P0/P1, introducir validación de esquema y pruebas del modelo, y unificar el sistema de configuración visual. Esto reducirá regresiones en todas las variantes futuras.
 
@@ -139,18 +144,38 @@ Un JSON corrupto o manipulado puede crear estilos CSS inválidos, elementos invi
 
 ### P1 — Hacer atómica o versionada la sincronización de tablero y recursos
 
-**Evidencia**
+**Estado en 0.7.0 (19 de agosto de 2026): resuelto.**
+
+**Verificación actual**
+
+- El envelope `formatVersion: 2` contiene workspace, fondos e icono de pestaña bajo
+  una misma `revision`.
+- Cada guardado publica el snapshot completo mediante una única actualización del
+  archivo de Drive; ya no existe una segunda escritura de recursos en el cliente
+  actual.
+- Subir, fusionar, guardar automáticamente y resolver conflictos usan los recursos
+  correspondientes a la misma revisión.
+- Las copias `formatVersion: 1` continúan siendo legibles junto con su archivo de
+  recursos heredado y migran al envelope conjunto en el siguiente guardado.
+- Una vez migrada la copia, el archivo heredado deja de consultarse.
+
+**Pendiente de cobertura**
+
+- Añadir pruebas automatizadas de migración v1 → v2, conflicto entre dispositivos,
+  interrupción de red y rechazo de un bundle de recursos inválido.
+
+**Evidencia original**
 
 Drive usa un archivo para el workspace y otro para fondos/icono. El workspace tiene `revision`, pero el bundle de recursos no participa en el conflicto. Guardar manualmente realiza primero una operación y después otra. Los cambios de fondos se programan con un `setTimeout` independiente.
 
-**Impacto**
+**Impacto original**
 
 - Un guardado puede completar el tablero y fallar los fondos.
 - Dos dispositivos pueden sobrescribir recursos sin detectar conflicto.
 - El workspace puede referenciar un fondo que todavía no existe remotamente o que otro dispositivo sustituyó.
 - La fecha “último guardado” puede representar solo recursos, no el workspace completo.
 
-**Recomendación**
+**Recomendación original**
 
 - Añadir `assetRevision`/hash y un `bundleId` compartido en ambos archivos.
 - Preferir un único envelope si el tamaño es aceptable; si no, subir recursos primero y publicar después un manifest que los referencie.
@@ -178,15 +203,30 @@ Puede dejar archivos huérfanos y consumir cuota. Una importación parcialmente 
 
 ### P1 — Actualizar la fecha al cambiar el día
 
-**Evidencia**
+**Estado en 0.7.0 (19 de agosto de 2026): resuelto.**
+
+**Verificación actual**
+
+- `useToday` calcula el tiempo restante hasta la siguiente medianoche local y
+  actualiza el valor al cambiar el día.
+- El hook recalcula en `visibilitychange` al volver a primer plano, cubriendo la
+  suspensión de temporizadores del navegador.
+- El temporizador y el listener se eliminan al desmontar el componente.
+
+**Pendiente de cobertura**
+
+- Añadir pruebas con reloj simulado para medianoche, cambio de horario y reanudación
+  de una pestaña suspendida.
+
+**Evidencia original**
 
 `today` se calcula con `useMemo(..., [])` en `NewTab.tsx`.
 
-**Impacto**
+**Impacto original**
 
 Una pestaña dejada abierta durante la noche muestra la fecha anterior indefinidamente.
 
-**Recomendación**
+**Recomendación original**
 
 - Crear `useToday(locale)` que programe el siguiente cambio a medianoche.
 - Recalcular también en `visibilitychange`, porque los temporizadores pueden suspenderse.
@@ -194,15 +234,35 @@ Una pestaña dejada abierta durante la noche muestra la fecha anterior indefinid
 
 ### P1 — Manejar fallos de almacenamiento local sin romper el render
 
-**Evidencia**
+**Estado en 0.7.0 (19 de agosto de 2026): resuelto.**
+
+**Verificación actual**
+
+- Las cargas de tablero y workspace capturan almacenamiento bloqueado, excepciones
+  del navegador y contenido corrupto, y degradan a un workspace válido en memoria.
+- `boardStorage.save` y `workspaceStorage.save` devuelven un resultado tipado
+  `{ ok, error }` y no propagan excepciones hacia React.
+- La persistencia del workspace tiene un debounce de `400 ms`.
+- La barra distingue guardado pendiente y error, mostrando “Cambios no guardados
+  localmente” cuando la copia solo permanece en memoria.
+- Las preferencias locales del flujo de Drive también tienen fallbacks seguros.
+
+**Pendiente de cobertura**
+
+- Añadir pruebas para `QuotaExceededError`, `SecurityError`, JSON corrupto y
+  almacenamiento completamente deshabilitado.
+- Evaluar `browser.storage.local` como evolución de arquitectura; ya no es necesario
+  para evitar que una excepción rompa el render.
+
+**Evidencia original**
 
 `workspaceStorage.save` usa `localStorage.setItem` sin `try/catch`, y se invoca desde un efecto en cada cambio de workspace. Otras áreas sí capturan fallos.
 
-**Impacto**
+**Impacto original**
 
 Cuota llena, almacenamiento deshabilitado o una excepción del navegador pueden escapar del efecto. El usuario no recibe indicación de que sus cambios no persistieron.
 
-**Recomendación**
+**Recomendación original**
 
 - Hacer que `save` devuelva `{ok, error}`.
 - Mostrar estado “cambios no guardados localmente”.
@@ -282,9 +342,37 @@ Además mezcla tres responsabilidades: medición de contenido, restricciones de 
 
 ### P2 — Debounce real y cola para guardado de fondos
 
+**Estado en 0.7.0 (19 de agosto de 2026): resuelto.**
+
+**Verificación actual**
+
+- Workspace, fondos e icono utilizan un único programador de guardado del snapshot
+  atómico de Drive.
+- El temporizador se conserva en un ref y cada cambio cancela y reemplaza el
+  anterior; los cambios de fondos usan `500 ms` y los de workspace `1500 ms`.
+- Las escrituras pasan por una sola cola: nunca se ejecutan dos actualizaciones de
+  Drive simultáneamente desde la pestaña.
+- Si llegan cambios durante una operación activa, se compactan en una única
+  operación pendiente que captura el snapshot más reciente (`latest-wins`).
+- Las solicitudes manuales se incorporan a la misma cola y una solicitud `force`
+  conserva esa intención al compactarse.
+- Un conflicto vacía y detiene la cola pendiente para impedir escrituras con una
+  revisión obsoleta.
+- El temporizador pendiente se cancela al desmontar `NewTab`.
+
+**Pendiente de cobertura**
+
+- Añadir pruebas con latencia simulada para ráfagas de cambios, compactación
+  `latest-wins`, conflicto durante una cola y desmontaje con timer activo.
+- Un reintento automático con backoff continúa como mejora de resiliencia; ante un
+  fallo actual se conserva el estado visual de error y un cambio posterior vuelve a
+  programar el guardado.
+
+**Evidencia original**
+
 `scheduleWallpaperDriveSave` crea un nuevo timeout en cada llamada, sin cancelar el anterior. Varias modificaciones rápidas generan subidas concurrentes; la última en finalizar, no necesariamente la última iniciada, determina el estado remoto.
 
-**Recomendación**
+**Recomendación original**
 
 - Guardar el timer en un ref y cancelarlo.
 - Mantener una cola `latest-wins` con número de operación.
@@ -304,9 +392,37 @@ El `AbortController` de `useSearchSuggestions` solo impide aplicar el resultado;
 
 ### P2 — Reducir el bundle inicial
 
+**Estado en 0.7.0 (19 de agosto de 2026): resuelto.**
+
+**Verificación actual**
+
+- Los renderizadores de fecha, link, grupo y título se cargan dinámicamente solo
+  cuando el workspace contiene esos tipos; el buscador permanece eager porque forma
+  parte del tablero inicial.
+- El modal de reconciliación de Drive y su infraestructura de modal se descargan
+  únicamente cuando existe una decisión remota pendiente.
+- Frente al build inmediatamente anterior, el entry bajó de `808.41 kB` a
+  `766.45 kB` minificado y de `230.30 kB` a `218.55 kB` gzip: aproximadamente
+  `42 kB` minificados y `11.75 kB` gzip menos.
+- `scripts/check-entry-budget.mjs` mide los assets referenciados por `index.html`
+  para Chrome y Firefox y hace fallar el build si el JS supera `220 KiB` gzip o el
+  CSS supera `40 KiB` gzip.
+- El presupuesto se ejecuta dentro de `npm run build` y también puede correrse de
+  forma aislada con `npm run check:bundle-size`.
+
+**Pendiente de cobertura**
+
+- Analizar una futura reducción de Mantine y del registro de iconos. Separarlos con
+  `manualChunks` sin reducir los bytes requeridos inicialmente no se considera una
+  corrección por sí sola.
+- Añadir medición de tiempo de evaluación y primera interacción en hardware de gama
+  baja; el presupuesto actual cubre transferencia, no coste de ejecución.
+
+**Evidencia original**
+
 Aunque varias ventanas usan `lazy`, el chunk principal conserva gran parte de Mantine, iconos y lógica. El build reporta ~`771 kB` minificado.
 
-**Recomendación**
+**Recomendación original**
 
 - Analizar con `rollup-plugin-visualizer`.
 - Evitar imports que arrastren catálogos completos de iconos.
@@ -771,11 +887,11 @@ Cambios pequeños con buena relación beneficio/riesgo:
 
 1. Añadir `link-text` y `link-strip` a `LinkConfig`, o retirarlas coherentemente.
 2. Corregir `search-box` → `search-input` y el flujo de “Agregar” en documentación.
-3. Actualizar la fecha con un hook de medianoche.
+3. ~~Actualizar la fecha con un hook de medianoche.~~ Resuelto el 19 de agosto de 2026.
 4. Conservar el resultado de `getNextLayout` al agregar.
-5. Debounce del guardado de fondos.
+5. ~~Debounce y cola del guardado de fondos.~~ Resuelto el 19 de agosto de 2026.
 6. `permissions.contains` para sugerencias.
-7. Capturar errores de `workspaceStorage.save`.
+7. ~~Capturar errores de `workspaceStorage.save`.~~ Resuelto el 19 de agosto de 2026.
 8. Fijar `web-ext` en el lockfile.
 9. Añadir workflow de PR.
 10. Extraer constantes compartidas de fuentes y swatches.
