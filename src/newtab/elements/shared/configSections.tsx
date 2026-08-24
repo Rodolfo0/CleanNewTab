@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import {
+  Accordion,
   ActionIcon,
   ColorPicker,
   ColorSwatch,
@@ -90,6 +91,29 @@ export function Section({
   );
 }
 
+export function ConfigAccordion({
+  children,
+  title,
+  value,
+}: {
+  children: React.ReactNode;
+  title: string;
+  value: string;
+}) {
+  return (
+    <Accordion variant="separated" radius="md">
+      <Accordion.Item value={value}>
+        <Accordion.Control>
+          <Text size="xs" fw={700}>{title}</Text>
+        </Accordion.Control>
+        <Accordion.Panel>
+          <Stack gap="md">{children}</Stack>
+        </Accordion.Panel>
+      </Accordion.Item>
+    </Accordion>
+  );
+}
+
 function useItemMutators({
   item,
   onChange,
@@ -134,6 +158,20 @@ export function PresentationConfig({
         onChange={(value) => updateDisplay({ align: value as BoardItemAlign })}
       />
     </Section>
+  );
+}
+
+export function AlignmentConfig({
+  item,
+  onChange,
+}: {
+  item: BoardItem;
+  onChange: (itemId: string, patch: ItemConfigPatch) => void;
+}) {
+  return (
+    <ConfigAccordion title="Alineación" value="alignment">
+      <PresentationConfig item={item} onChange={onChange} />
+    </ConfigAccordion>
   );
 }
 

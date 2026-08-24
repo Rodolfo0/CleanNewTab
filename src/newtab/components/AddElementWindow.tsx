@@ -22,15 +22,30 @@ import { PopularSitesList } from "./PopularSitesList";
 import { RecentHistoryList } from "./RecentHistoryList";
 
 const elementOptions = [
-  { value: "link", label: "Link", icon: LinkSimpleIcon },
-  { value: "group", label: "Grupo", icon: FolderSimpleIcon },
-  { value: "title", label: "Título", icon: TextTIcon },
-  { value: "date", label: "Fecha", icon: CalendarBlankIcon },
-  { value: "search", label: "Búsqueda", icon: MagnifyingGlassIcon },
+  { id: "link", value: "link", label: "Link", icon: LinkSimpleIcon },
+  {
+    id: "group-cards",
+    value: "group",
+    label: "Grupo de cards",
+    icon: FolderSimpleIcon,
+    display: { variant: "group-grid" },
+  },
+  {
+    id: "group-icons",
+    value: "group",
+    label: "Grupo de íconos",
+    icon: FolderSimpleIcon,
+    display: { variant: "group-icons" },
+  },
+  { id: "title", value: "title", label: "Título", icon: TextTIcon },
+  { id: "date", value: "date", label: "Fecha", icon: CalendarBlankIcon },
+  { id: "search", value: "search", label: "Búsqueda", icon: MagnifyingGlassIcon },
 ] satisfies Array<{
+  id: string;
   value: BoardItemType;
   label: string;
   icon: typeof LinkSimpleIcon;
+  display?: Partial<BoardItemDisplay>;
 }>;
 
 type AddElementWindowProps = {
@@ -101,16 +116,18 @@ export function AddElementWindow({
         </Group>
 
         <Stack gap="md" className="max-h-[calc(100vh-78px)] overflow-auto p-3">
-          <div className="grid grid-cols-5 gap-2">
+          <div className="grid grid-cols-3 gap-2">
             {elementOptions.map((option) => {
               const Icon = option.icon;
 
               return (
                 <button
-                  key={option.value}
+                  key={option.id}
                   type="button"
                   className="grid min-h-20 place-items-center gap-2 rounded-md border border-[#d0d5dd] bg-white px-2 py-2 text-center text-[#344054] transition-colors hover:bg-[#f9fafb]"
-                  onClick={() => onAdd(option.value)}
+                  onClick={() =>
+                    onAdd(option.value, { display: option.display })
+                  }
                 >
                   <Icon size={22} />
                   <Text size="xs" fw={700}>{option.label}</Text>

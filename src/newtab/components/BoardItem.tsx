@@ -16,11 +16,7 @@ import {
   TrashIcon,
 } from "@phosphor-icons/react";
 
-import { DateRender } from "../elements/date/DateRender";
-import { GroupRender } from "../elements/group/GroupRender";
-import { LinkRender } from "../elements/link/LinkRender";
 import { SearchRender } from "../elements/search/SearchRender";
-import { TitleRender } from "../elements/title/TitleRender";
 import {
   BoardItem as BoardItemData,
   BoardItemStyle,
@@ -40,6 +36,18 @@ const TitleDesignWindow = lazy(() =>
   import("./TitleDesignWindow").then((module) => ({
     default: module.TitleDesignWindow,
   })),
+);
+const DateRender = lazy(() =>
+  import("../elements/date/DateRender").then((module) => ({ default: module.DateRender })),
+);
+const GroupRender = lazy(() =>
+  import("../elements/group/GroupRender").then((module) => ({ default: module.GroupRender })),
+);
+const LinkRender = lazy(() =>
+  import("../elements/link/LinkRender").then((module) => ({ default: module.LinkRender })),
+);
+const TitleRender = lazy(() =>
+  import("../elements/title/TitleRender").then((module) => ({ default: module.TitleRender })),
 );
 
 type BoardItemProps = {
@@ -86,23 +94,23 @@ function ItemContent({
   today: string;
   componentTheme: Partial<BoardItemStyle>;
 }) {
-  if (item.type === "group") {
-    return <GroupRender item={item} isEditing={isEditing} componentTheme={componentTheme} />;
-  }
-
-  if (item.type === "title") {
-    return <TitleRender item={item} componentTheme={componentTheme} />;
-  }
-
-  if (item.type === "date") {
-    return <DateRender item={item} today={today} componentTheme={componentTheme} />;
-  }
-
   if (item.type === "search") {
     return <SearchRender item={item} isEditing={isEditing} componentTheme={componentTheme} />;
   }
 
-  return <LinkRender item={item} componentTheme={componentTheme} />;
+  return (
+    <Suspense fallback={null}>
+      {item.type === "group" ? (
+        <GroupRender item={item} isEditing={isEditing} componentTheme={componentTheme} />
+      ) : item.type === "title" ? (
+        <TitleRender item={item} componentTheme={componentTheme} />
+      ) : item.type === "date" ? (
+        <DateRender item={item} today={today} componentTheme={componentTheme} />
+      ) : (
+        <LinkRender item={item} componentTheme={componentTheme} />
+      )}
+    </Suspense>
+  );
 }
 
 function getClosestSnap({

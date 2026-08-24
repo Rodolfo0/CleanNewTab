@@ -338,11 +338,15 @@ type DriveFile = {
 
 type DriveWorkspaceEnvelope = {
   format: "clean-new-tab-workspace";
-  formatVersion: 1;
+  formatVersion: 1 | 2;
   revision: number;
   updatedAt: string;
   updatedBy: string;
   workspace: unknown;
+  resources?: {
+    wallpapers: unknown;
+    tabIcon: string | null;
+  };
 };
 
 async function findDriveFile(token: string, fileName = driveFileName) {
@@ -375,7 +379,7 @@ async function downloadDriveFile(
   if (
     !isRecord(value) ||
     value.format !== "clean-new-tab-workspace" ||
-    value.formatVersion !== 1 ||
+    (value.formatVersion !== 1 && value.formatVersion !== 2) ||
     typeof value.revision !== "number" ||
     !Number.isInteger(value.revision) ||
     value.revision < 1 ||
@@ -385,6 +389,22 @@ async function downloadDriveFile(
     value.workspace === null
   ) {
     throw new Error("El archivo de Drive no tiene un formato válido.");
+  }
+
+  if (value.formatVersion === 2) {
+    if (
+      !isRecord(value.resources) ||
+      typeof value.resources.wallpapers !== "object" ||
+      value.resources.wallpapers === null ||
+      !(
+        value.resources.tabIcon === null ||
+        (typeof value.resources.tabIcon === "string" &&
+          value.resources.tabIcon.length <= 700_000 &&
+          (value.resources.tabIcon === "" || value.resources.tabIcon.startsWith("data:image/")))
+      )
+    ) {
+      throw new Error("Los recursos de la copia de Drive no tienen un formato válido.");
+    }
   }
 
   return value as DriveWorkspaceEnvelope;
@@ -506,35 +526,35 @@ async function connectDrive(
 ) {
   const token = await getDriveToken(true);
   const file = await findDriveFile(token);
-  const remoteAssets = await loadDriveWallpapers(token);
 
   if (file) {
     const envelope = await downloadDriveFile(token, file.id);
+    const remoteAssets = envelope.formatVersion === 1
+      ? await loadDriveWallpapers(token)
+      : null;
     await setStoredDriveState({ connected: true, fileId: file.id });
-    if (!remoteAssets && localWallpapers) {
-      await saveDriveWallpapers(token, localWallpapers, localTabIcon);
-    }
     return {
       ok: true,
       kind: "remote",
       envelope,
-      wallpapers: remoteAssets?.wallpapers,
-      tabIcon: remoteAssets?.tabIcon,
+      wallpapers: envelope.resources?.wallpapers ?? remoteAssets?.wallpapers,
+      tabIcon: envelope.resources?.tabIcon ?? remoteAssets?.tabIcon,
     };
   }
 
   const envelope = {
     format: "clean-new-tab-workspace",
-    formatVersion: 1,
+    formatVersion: 2,
     revision: 1,
     updatedAt: new Date().toISOString(),
     updatedBy: deviceId,
     workspace,
+    resources: {
+      wallpapers: localWallpapers,
+      tabIcon: localTabIcon ?? null,
+    },
   };
   const created = await createDriveFile(token, envelope);
-  if (localWallpapers) {
-    await saveDriveWallpapers(token, localWallpapers, localTabIcon);
-  }
   await setStoredDriveState({ connected: true, fileId: created.id });
   return { ok: true, kind: "created", envelope };
 }
@@ -546,19 +566,23 @@ async function loadDrive() {
     return { ok: true, kind: "empty" };
   }
   const envelope = await downloadDriveFile(token, file.id);
-  const assets = await loadDriveWallpapers(token);
+  const assets = envelope.formatVersion === 1
+    ? await loadDriveWallpapers(token)
+    : null;
   await setStoredDriveState({ connected: true, fileId: file.id });
   return {
     ok: true,
     kind: "remote",
     envelope,
-    wallpapers: assets?.wallpapers,
-    tabIcon: assets?.tabIcon,
+    wallpapers: envelope.resources?.wallpapers ?? assets?.wallpapers,
+    tabIcon: envelope.resources?.tabIcon ?? assets?.tabIcon,
   };
 }
 
 async function saveDrive(
   workspace: unknown,
+  wallpapers: unknown,
+  tabIcon: string | null | undefined,
   deviceId: string,
   expectedRevision: number | undefined,
   force: boolean,
@@ -569,11 +593,12 @@ async function saveDrive(
   if (!file) {
     const envelope = {
       format: "clean-new-tab-workspace",
-      formatVersion: 1,
+      formatVersion: 2,
       revision: 1,
       updatedAt: new Date().toISOString(),
       updatedBy: deviceId,
       workspace,
+      resources: { wallpapers, tabIcon: tabIcon ?? null },
     };
     const created = await createDriveFile(token, envelope);
     await setStoredDriveState({ connected: true, fileId: created.id });
@@ -587,11 +612,12 @@ async function saveDrive(
 
   const envelope = {
     format: "clean-new-tab-workspace",
-    formatVersion: 1,
+    formatVersion: 2,
     revision: current.revision + 1,
     updatedAt: new Date().toISOString(),
     updatedBy: deviceId,
     workspace,
+    resources: { wallpapers, tabIcon: tabIcon ?? null },
   };
   await updateDriveFile(token, file.id, envelope);
   await setStoredDriveState({ connected: true, fileId: file.id });
@@ -630,6 +656,8 @@ async function handleDriveMessage(message: DriveMessage) {
   if (message.type === "drive-save") {
     return saveDrive(
       message.workspace,
+      message.wallpapers,
+      message.tabIcon,
       message.deviceId ?? "unknown-device",
       message.expectedRevision,
       message.force === true,

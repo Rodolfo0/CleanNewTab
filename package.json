@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc --noEmit && node scripts/build-extension.mjs",
+    "build": "tsc --noEmit && node scripts/build-extension.mjs && node scripts/check-entry-budget.mjs",
+    "check:bundle-size": "node scripts/check-entry-budget.mjs",
     "package:mozilla": "npm run build && node scripts/package-mozilla.mjs",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",

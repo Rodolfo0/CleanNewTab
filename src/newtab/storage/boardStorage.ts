@@ -1,4 +1,4 @@
-import { clampItemLayout, isSearchEngineId } from '../model/boardItems'
+import { clampItemLayout, isSearchEngineId, parseNavigableUrl } from '../model/boardItems'
 import type { Board, BoardItem } from '../model/boardItems'
 import { isComponentThemeId, type ComponentThemeId } from '../themes/componentThemes'
 
@@ -63,7 +63,26 @@ const defaultBackgroundMode: BoardBackgroundMode = 'image-rotating'
 const defaultComponentThemeId: ComponentThemeId = 'clean'
 
 function canUseLocalStorage() {
-  return typeof window !== 'undefined' && typeof window.localStorage !== 'undefined'
+  try {
+    return typeof window !== 'undefined' && typeof window.localStorage !== 'undefined'
+  } catch {
+    return false
+  }
+}
+
+export type LocalStorageSaveResult =
+  | { ok: true }
+  | { ok: false; error: string }
+
+function storageFailure(error: unknown): LocalStorageSaveResult {
+  return {
+    ok: false,
+    error: error instanceof Error
+      ? error.message
+      : typeof error === 'string'
+        ? error
+        : 'El almacenamiento local no está disponible.',
+  }
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -104,11 +123,13 @@ function isValidItem(item: unknown): item is BoardItem {
   }
 
   if (item.type === 'link') {
-    return typeof item.url === 'string'
+    return typeof item.url === 'string' && parseNavigableUrl(item.url).ok
   }
 
   if (item.type === 'group') {
-    return Array.isArray(item.links)
+    return Array.isArray(item.links) && item.links.every(
+      (link) => isRecord(link) && link.type === 'link' && isValidItem(link),
+    )
   }
 
   if (item.type === 'search') {
@@ -129,6 +150,21 @@ function normalizeBoard(board: Board): Board {
       const normalizedItem = {
         ...item,
         layout: clampItemLayout(item, item.layout),
+      }
+
+      if (item.type === 'link') {
+        const result = parseNavigableUrl(item.url)
+        return { ...normalizedItem, url: result.ok ? result.url : item.url }
+      }
+
+      if (item.type === 'group') {
+        return {
+          ...normalizedItem,
+          links: item.links.map((link) => {
+            const result = parseNavigableUrl(link.url)
+            return { ...link, url: result.ok ? result.url : link.url }
+          }),
+        }
       }
 
       return item.type === 'search'
@@ -355,15 +391,24 @@ export const boardStorage = {
       return defaultBoard
     }
 
-    return parseBoard(window.localStorage.getItem(BOARD_STORAGE_KEY))
+    try {
+      return parseBoard(window.localStorage.getItem(BOARD_STORAGE_KEY))
+    } catch {
+      return defaultBoard
+    }
   },
 
-  save(board: Board) {
+  save(board: Board): LocalStorageSaveResult {
     if (!canUseLocalStorage()) {
-      return
+      return storageFailure('El almacenamiento local no está disponible.')
     }
 
-    window.localStorage.setItem(BOARD_STORAGE_KEY, JSON.stringify(board))
+    try {
+      window.localStorage.setItem(BOARD_STORAGE_KEY, JSON.stringify(board))
+      return { ok: true }
+    } catch (error) {
+      return storageFailure(error)
+    }
   },
 }
 
@@ -373,36 +418,39 @@ export const workspaceStorage = {
       return createDefaultWorkspace()
     }
 
-    const storedWorkspace = window.localStorage.getItem(WORKSPACE_STORAGE_KEY)
-    const preferredActiveSpaceId =
-      window.localStorage.getItem(ACTIVE_SPACE_STORAGE_KEY) ?? undefined
-    let workspace: BoardWorkspace | null = null
-
     try {
+      const storedWorkspace = window.localStorage.getItem(WORKSPACE_STORAGE_KEY)
+      const preferredActiveSpaceId =
+        window.localStorage.getItem(ACTIVE_SPACE_STORAGE_KEY) ?? undefined
+      let workspace: BoardWorkspace | null = null
       const parsed: unknown = storedWorkspace ? JSON.parse(storedWorkspace) : null
       workspace = parseImportedSyncedWorkspace(parsed, preferredActiveSpaceId)
+      workspace ??= parseWorkspace(storedWorkspace)
+
+      if (workspace) {
+        return workspace
+      }
+
+      return createDefaultWorkspace(parseBoard(window.localStorage.getItem(BOARD_STORAGE_KEY)))
     } catch {
-      workspace = null
+      return createDefaultWorkspace()
     }
-
-    workspace ??= parseWorkspace(storedWorkspace)
-
-    if (workspace) {
-      return workspace
-    }
-
-    return createDefaultWorkspace(parseBoard(window.localStorage.getItem(BOARD_STORAGE_KEY)))
   },
 
-  save(workspace: BoardWorkspace) {
+  save(workspace: BoardWorkspace): LocalStorageSaveResult {
     if (!canUseLocalStorage()) {
-      return
+      return storageFailure('El almacenamiento local no está disponible.')
     }
 
-    window.localStorage.setItem(
-      WORKSPACE_STORAGE_KEY,
-      JSON.stringify(toSyncedWorkspace(workspace)),
-    )
-    window.localStorage.setItem(ACTIVE_SPACE_STORAGE_KEY, workspace.activeSpaceId)
+    try {
+      window.localStorage.setItem(
+        WORKSPACE_STORAGE_KEY,
+        JSON.stringify(toSyncedWorkspace(workspace)),
+      )
+      window.localStorage.setItem(ACTIVE_SPACE_STORAGE_KEY, workspace.activeSpaceId)
+      return { ok: true }
+    } catch (error) {
+      return storageFailure(error)
+    }
   },
 }

@@ -1,5 +1,8 @@
 import { Stack, TextInput } from "@mantine/core";
-import { PresentationConfig, VariantConfig } from "../shared/configSections";
+import {
+  AlignmentConfig,
+  VariantConfig,
+} from "../shared/configSections";
 import type { ElementConfigProps } from "../shared/configTypes";
 import type { DateItem } from "../../model/boardItems";
 
@@ -24,7 +27,7 @@ export function DateConfig({ item, onChange }: ElementConfigProps<DateItem>) {
           { label: "Minima", description: "Solo fecha sin etiqueta.", value: "date-minimal" },
         ]}
       />
-      <PresentationConfig item={item} onChange={onChange} />
+      <AlignmentConfig item={item} onChange={onChange} />
     </Stack>
   );
 }

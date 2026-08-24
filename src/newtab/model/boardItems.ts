@@ -1,5 +1,6 @@
 export * from "./boardItemFactory";
 export * from "./boardItemLayout";
+export * from "./navigableUrl";
 export * from "./boardItemPresentation";
 export * from "./boardItemTypes";
 export * from "./boardUtils";

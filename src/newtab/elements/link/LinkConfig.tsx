@@ -1,11 +1,27 @@
-import { Stack, TextInput } from "@mantine/core";
+import { Stack, Switch, TextInput } from "@mantine/core";
 
-import { LinkIconConfig, VariantConfig } from "../shared/configSections";
+import {
+  AlignmentConfig,
+  ConfigAccordion,
+  LinkIconConfig,
+  VariantConfig,
+} from "../shared/configSections";
 
 import type { ElementConfigProps } from "../shared/configTypes";
-import type { LinkItem } from "../../model/boardItems";
+import {
+  getItemDisplay,
+  normalizeUrl,
+  parseNavigableUrl,
+  type LinkItem,
+} from "../../model/boardItems";
 
 export function LinkConfig({ item, onChange }: ElementConfigProps<LinkItem>) {
+  const urlResult = parseNavigableUrl(item.url);
+  const display = getItemDisplay(item);
+  const isIconOnly =
+    display.variant === "link-icon" ||
+    display.variant === "link-icon-plain";
+
   return (
     <Stack gap="md">
       <Stack gap={8}>
@@ -24,6 +40,11 @@ export function LinkConfig({ item, onChange }: ElementConfigProps<LinkItem>) {
           onChange={(event) =>
             onChange(item.id, { url: event.currentTarget.value })
           }
+          onBlur={(event) => {
+            const result = parseNavigableUrl(event.currentTarget.value);
+            if (result.ok) onChange(item.id, { url: normalizeUrl(result.url) });
+          }}
+          error={urlResult.ok ? undefined : urlResult.error}
         />
       </Stack>
 
@@ -58,7 +79,24 @@ export function LinkConfig({ item, onChange }: ElementConfigProps<LinkItem>) {
           },
         ]}
       />
-      <LinkIconConfig item={item} onChange={onChange} />
+      <ConfigAccordion title="Apariencia del ícono" value="icon">
+        {!isIconOnly ? (
+          <Switch
+            size="xs"
+            label="Mostrar ícono"
+            checked={display.showIcon}
+            onChange={(event) =>
+              onChange(item.id, {
+                display: { ...display, showIcon: event.currentTarget.checked },
+              })
+            }
+          />
+        ) : null}
+        {display.showIcon ? (
+          <LinkIconConfig item={item} onChange={onChange} />
+        ) : null}
+      </ConfigAccordion>
+      <AlignmentConfig item={item} onChange={onChange} />
     </Stack>
   );
 }

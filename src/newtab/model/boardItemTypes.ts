@@ -47,10 +47,9 @@ export type LinkItemVariant =
 export type GroupItemVariant =
   | "group-grid"
   | "group-grid-no-header"
-  | "group-list-plain"
+  | "group-grid-plain"
   | "group-icons"
   | "group-icons-plain"
-  | "group-list"
   | "group-list-no-header";
 export type TitleItemVariant = "title-heading" | "title-label" | "title-panel";
 export type DateItemVariant = "date-card" | "date-large" | "date-minimal";
@@ -73,6 +72,13 @@ export type BoardItemVariant =
 
 export type BoardItemDisplay = {
   align: BoardItemAlign;
+  groupCardContentAlign: BoardItemAlign;
+  groupCardContentDirection: "horizontal" | "vertical";
+  groupCardContentPosition: "bottom" | "center" | "top";
+  groupCardIconFrame: boolean;
+  groupCardIconSize: number;
+  groupCardMinHeight: number;
+  groupCardMinWidth: number;
   iconSize: number;
   iconSizeLocked: boolean;
   iconStyle: BoardItemIconStyle;
@@ -98,7 +104,11 @@ export type BaseBoardItem = {
   createdAt: string;
 };
 
-export type LinkItem = BaseBoardItem & { type: "link"; url: string };
+export type LinkItem = BaseBoardItem & {
+  type: "link";
+  url: string;
+  openInNewTab?: boolean;
+};
 export type GroupItem = BaseBoardItem & { type: "group"; links: LinkItem[] };
 export type TitleItem = BaseBoardItem & { type: "title" };
 export type DateItem = BaseBoardItem & { type: "date" };

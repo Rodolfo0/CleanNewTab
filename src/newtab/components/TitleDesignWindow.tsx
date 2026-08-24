@@ -173,7 +173,7 @@ export function TitleDesignWindow({
             withBorder
             radius="md"
             shadow="lg"
-            className="w-[340px] overflow-hidden bg-white"
+            className="w-85 overflow-hidden bg-white"
             style={{
               maxHeight: "calc(100vh - 24px)",
               position: "fixed",
