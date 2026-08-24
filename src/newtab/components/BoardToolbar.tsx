@@ -61,6 +61,7 @@ export function BoardToolbar({
   onWallpapers,
 }: BoardToolbarProps) {
   const drawer = useEdgeDrawer();
+  const isDrawerOpen = isEditing || drawer.isOpen;
   const driveLabel = {
     checking: "Comprobando Google Drive…",
     conflict: "Conflicto con Google Drive",
@@ -84,7 +85,7 @@ export function BoardToolbar({
   return (
     <div
       className={`edge-drawer edge-drawer-right fixed right-0 top-4 z-30 flex items-start ${
-        drawer.isOpen ? "edge-drawer-open" : ""
+        isDrawerOpen ? "edge-drawer-open" : ""
       }`}
       onMouseEnter={drawer.open}
       onMouseLeave={drawer.closeAfterDelay}
@@ -98,10 +99,10 @@ export function BoardToolbar({
       <button
         type="button"
         className="mr-5.5 mt-1 grid size-8 shrink-0 place-items-center rounded-full border border-[#d0d5dd] bg-white/94 text-[#475467] shadow-sm backdrop-blur transition-colors hover:bg-[#f9fafb]"
-        aria-label={drawer.isOpen ? "Ocultar controles" : "Mostrar controles"}
-        title={drawer.isOpen ? "Ocultar controles" : "Mostrar controles"}
+        aria-label={isDrawerOpen ? "Ocultar controles" : "Mostrar controles"}
+        title={isDrawerOpen ? "Ocultar controles" : "Mostrar controles"}
       >
-        {drawer.isOpen ? (
+        {isDrawerOpen ? (
           <CaretRightIcon size={16} weight="bold" />
         ) : (
           <CaretLeftIcon size={16} weight="bold" />

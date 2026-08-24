@@ -1571,7 +1571,7 @@ export function NewTab() {
 
   function addLinkToGroup(
     groupId: string,
-    values: { linkIcon?: string; title: string; url: string },
+    values: { iconSize?: number; linkIcon?: string; openInNewTab?: boolean; showIcon?: boolean; title: string; url: string },
   ) {
     setDraftBoard((currentBoard) => ({
       ...currentBoard,
@@ -1581,13 +1581,23 @@ export function NewTab() {
               ...item,
               links: [
                 ...item.links,
-                createLink({
-                  display: values.linkIcon
-                    ? { linkIcon: values.linkIcon }
-                    : undefined,
-                  title: values.title,
-                  url: values.url,
-                }),
+                {
+                  ...createLink({
+                    display:
+                      values.iconSize !== undefined ||
+                      values.linkIcon ||
+                      values.showIcon !== undefined
+                        ? {
+                            iconSize: values.iconSize,
+                            linkIcon: values.linkIcon,
+                            showIcon: values.showIcon,
+                          }
+                        : undefined,
+                    title: values.title,
+                    url: values.url,
+                  }),
+                  openInNewTab: values.openInNewTab,
+                },
               ],
             }
           : item,
@@ -1622,7 +1632,7 @@ export function NewTab() {
   function updateGroupLink(
     groupId: string,
     linkId: string,
-    patch: { title?: string; url?: string },
+    patch: { iconSize?: number; openInNewTab?: boolean; showIcon?: boolean; title?: string; url?: string },
   ) {
     setDraftBoard((currentBoard) => ({
       ...currentBoard,
@@ -1630,9 +1640,23 @@ export function NewTab() {
         item.id === groupId && item.type === "group"
           ? {
               ...item,
-              links: item.links.map((link) =>
-                link.id === linkId ? { ...link, ...patch } : link,
-              ),
+              links: item.links.map((link) => {
+                if (link.id !== linkId) return link;
+
+                const { iconSize, showIcon, ...linkPatch } = patch;
+                return {
+                  ...link,
+                  ...linkPatch,
+                  display:
+                    showIcon === undefined && iconSize === undefined
+                      ? link.display
+                      : {
+                          ...link.display,
+                          ...(iconSize !== undefined ? { iconSize } : {}),
+                          ...(showIcon !== undefined ? { showIcon } : {}),
+                        },
+                };
+              }),
             }
           : item,
       ),

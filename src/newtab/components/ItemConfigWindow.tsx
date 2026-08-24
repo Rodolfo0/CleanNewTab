@@ -1,7 +1,6 @@
 import {
   ActionIcon,
   CloseButton,
-  Divider,
   Group,
   NumberInput,
   Paper,
@@ -16,7 +15,7 @@ import { DateConfig } from "../elements/date/DateConfig";
 import { GroupConfig } from "../elements/group/GroupConfig";
 import { LinkConfig } from "../elements/link/LinkConfig";
 import { SearchConfig } from "../elements/search/SearchConfig";
-import { Section } from "../elements/shared/configSections";
+import { ConfigAccordion } from "../elements/shared/configSections";
 import { TitleConfig } from "../elements/title/TitleConfig";
 import { getItemMaxHeight } from "../model/boardItems";
 
@@ -98,10 +97,11 @@ function LayoutConfig({
   const maxHeight = getItemMaxHeight(item);
 
   return (
-    <>
-      <Divider />
-
-      <Section title="Tamano">
+    <ConfigAccordion title="Tamaño y posición" value="layout">
+      <Stack gap={6}>
+        <Text size="xs" fw={700} className="text-[#344054]">
+          Tamaño
+        </Text>
         <Group grow align="end">
           <NumberInput
             label="Ancho"
@@ -128,7 +128,7 @@ function LayoutConfig({
             }
           />
         </Group>
-      </Section>
+      </Stack>
 
       <Stack gap={6}>
         <Group justify="space-between">
@@ -195,7 +195,7 @@ function LayoutConfig({
           />
         </Group>
       </Stack>
-    </>
+    </ConfigAccordion>
   );
 }
 

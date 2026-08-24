@@ -145,12 +145,26 @@ body {
     .mantine-Menu-dropdown,
     .mantine-Modal-content,
     .mantine-Paper-root,
-    .mantine-Popover-dropdown
+    .mantine-Popover-dropdown,
+    .mantine-Accordion-item
   ) {
   background-color: var(--ui-surface);
   background-image: var(--ui-surface-image);
   border-color: var(--ui-border);
   color: var(--ui-text);
+}
+
+:root[data-component-theme]
+  :is(.mantine-Accordion-control, .mantine-Accordion-panel) {
+  color: var(--ui-text);
+}
+
+:root[data-component-theme] .mantine-Accordion-control:hover {
+  background-color: var(--ui-surface-muted);
+}
+
+.mantine-Accordion-item {
+  overflow: hidden;
 }
 
 :root[data-component-theme] :is(.mantine-Input-input, .mantine-Select-input) {

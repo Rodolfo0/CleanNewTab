@@ -1,5 +1,4 @@
 import { Anchor, Group, Stack, Text, Title } from "@mantine/core";
-import { PlusIcon } from "@phosphor-icons/react";
 
 import { BrandIcon } from "../../icons/BrandIcon";
 import { PhosphorIcon } from "../../icons/phosphorIcons";
@@ -36,12 +35,28 @@ export function GroupRender({
     display.variant === "group-icons-plain";
   const isGrid =
     display.variant === "group-grid" ||
-    display.variant === "group-grid-no-header";
-  const isList =
-    display.variant === "group-list" ||
-    display.variant === "group-list-plain" ||
-    display.variant === "group-list-no-header";
+    display.variant === "group-grid-no-header" ||
+    display.variant === "group-grid-plain";
+  const isList = display.variant === "group-list-no-header";
   const justify = getJustify(display.align);
+  const cardContentJustify =
+    display.groupCardContentAlign === "left"
+      ? "start"
+      : display.groupCardContentAlign === "right"
+        ? "end"
+        : "center";
+  const cardTextAlign =
+    display.groupCardContentAlign === "center"
+      ? "center"
+      : display.groupCardContentAlign === "right"
+        ? "right"
+        : "left";
+  const cardContentAlign =
+    display.groupCardContentPosition === "top"
+      ? "start"
+      : display.groupCardContentPosition === "bottom"
+        ? "end"
+        : "center";
   const textAlign =
     display.align === "center"
       ? "center"
@@ -68,13 +83,14 @@ export function GroupRender({
       {display.showTitle || display.showIcon ? (
         <Group
           gap={hasItemPadding ? 8 : 0}
-          justify={isGrid ? "center" : justify}
+          justify={justify}
           wrap="nowrap"
           className="min-w-0"
+          style={{ width: isGrid ? "100%" : undefined }}
         >
           {display.showIcon ? (
             <ItemIconFrame display={display} itemPadding={style.padding}>
-              <PlusIcon size={display.iconSize} />
+              <BrandIcon name={display.linkIcon} size={display.iconSize} />
             </ItemIconFrame>
           ) : null}
           {display.showTitle ? (
@@ -100,26 +116,38 @@ export function GroupRender({
         <Stack
           gap={hasItemPadding ? (isList ? 2 : isGrid ? 8 : 6) : 0}
           className="min-h-0 flex-1 overflow-hidden"
-          style={{ width: display.align === "center" ? "100%" : undefined }}
+          style={{
+            width:
+              isGrid || display.align === "center" ? "100%" : undefined,
+          }}
         >
           <div
             className={
               isIcons
                 ? "flex flex-wrap items-center gap-2"
-                : "contents"
+                : isGrid
+                  ? "grid content-start gap-2"
+                  : "contents"
             }
             style={{
-              gap: hasItemPadding ? undefined : 0,
-              justifyContent: isIcons ? justify : undefined,
+              gap: isGrid || hasItemPadding ? undefined : 0,
+              gridTemplateColumns: isGrid
+                ? `repeat(auto-fit, minmax(min(100%, ${display.groupCardMinWidth}px), ${display.groupCardMinWidth}px))`
+                : undefined,
+              justifyContent: isIcons || isGrid ? justify : undefined,
             }}
           >
-            {item.links.map((link) => (
-              <Anchor
+            {item.links.map((link) => {
+              const linkDisplay = getItemDisplay(link);
+
+              return (
+                <Anchor
                 key={link.id}
                 href={link.url}
-                target="_self"
+                target={link.openInNewTab ? "_blank" : "_self"}
+                rel={link.openInNewTab ? "noopener noreferrer" : undefined}
                 underline="never"
-                className={`flex items-center gap-2 ${
+                className={`${isGrid ? "grid" : "flex items-center"} ${
                   isIcons
                     ? "shrink-0 justify-center rounded-md hover:opacity-80"
                     : isList
@@ -127,17 +155,24 @@ export function GroupRender({
                           hasItemPadding ? "px-2 py-1" : "px-0 py-0"
                         }`
                       : isGrid
-                        ? `min-w-0 truncate rounded-md border border-black/10 text-sm hover:bg-black/4 ${
-                            hasItemPadding ? "px-2 py-2" : "px-0 py-0"
-                          }`
+                        ? "min-w-0 truncate rounded-md border border-[#d0d5dd] bg-white px-2 py-2 text-sm shadow-sm hover:bg-[#f9fafb]"
                         : "min-w-0 truncate text-sm"
                 }`}
                 style={{
+                  alignContent: isGrid ? cardContentAlign : undefined,
+                  alignItems: isGrid ? undefined : "center",
+                  color: style.textColor,
                   flex: isIcons ? "0 0 auto" : undefined,
                   height: isIcons ? display.iconSize : undefined,
-                  justifyContent: getJustify(display.align),
+                  justifyContent: isGrid
+                    ? undefined
+                    : getJustify(display.align),
+                  justifyItems: isGrid ? cardContentJustify : undefined,
                   lineHeight: 1,
-                  textAlign,
+                  minHeight: isGrid
+                    ? display.groupCardMinHeight
+                    : undefined,
+                  textAlign: isGrid ? cardTextAlign : textAlign,
                   width: isIcons ? display.iconSize : undefined,
                 }}
                 onClick={(event) => {
@@ -146,15 +181,45 @@ export function GroupRender({
                   }
                 }}
               >
-                <BrandIcon
-                  name={getItemDisplay(link).linkIcon}
-                  size={display.iconSize}
-                />
-                {isIcons ? null : (
-                  <span className="truncate">{link.title}</span>
-                )}
-              </Anchor>
-            ))}
+                <span
+                  className={`flex min-w-0 items-center ${isIcons ? "" : "gap-2"}`}
+                  style={{
+                    alignItems:
+                      isGrid && display.groupCardContentDirection === "vertical"
+                        ? getJustify(display.groupCardContentAlign)
+                        : "center",
+                    flexDirection:
+                      isGrid && display.groupCardContentDirection === "vertical"
+                        ? "column"
+                        : "row",
+                    maxWidth: "100%",
+                  }}
+                >
+                  {isIcons || linkDisplay.showIcon ? (
+                    <span
+                      className={
+                        isGrid && display.groupCardIconFrame
+                          ? "grid shrink-0 place-items-center rounded-md bg-[#f2f4f7] p-1.5"
+                          : "grid shrink-0 place-items-center"
+                      }
+                    >
+                      <BrandIcon
+                        name={linkDisplay.linkIcon}
+                        size={
+                          isIcons
+                            ? display.iconSize
+                            : link.display?.iconSize ?? display.groupCardIconSize
+                        }
+                      />
+                    </span>
+                  ) : null}
+                  {isIcons ? null : (
+                    <span className="truncate">{link.title}</span>
+                  )}
+                </span>
+                </Anchor>
+              );
+            })}
           </div>
         </Stack>
       ) : display.showSubtitle ? (

@@ -1,5 +1,8 @@
 import { Stack, TextInput } from "@mantine/core";
-import { PresentationConfig, VariantConfig } from "../shared/configSections";
+import {
+  AlignmentConfig,
+  VariantConfig,
+} from "../shared/configSections";
 import type { ElementConfigProps } from "../shared/configTypes";
 import type { TitleItem } from "../../model/boardItems";
 
@@ -24,7 +27,7 @@ export function TitleConfig({ item, onChange }: ElementConfigProps<TitleItem>) {
           { label: "Panel", description: "Texto con contenedor.", value: "title-panel" },
         ]}
       />
-      <PresentationConfig item={item} onChange={onChange} />
+      <AlignmentConfig item={item} onChange={onChange} />
     </Stack>
   );
 }
