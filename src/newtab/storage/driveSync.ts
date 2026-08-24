@@ -6,6 +6,7 @@ export type DriveSyncState =
   | 'disconnected'
   | 'syncing'
   | 'synced'
+  | 'paused'
   | 'pending'
   | 'conflict'
   | 'unsupported'
@@ -13,11 +14,15 @@ export type DriveSyncState =
 
 export type DriveWorkspaceEnvelope = {
   format: 'clean-new-tab-workspace'
-  formatVersion: 1
+  formatVersion: 1 | 2
   revision: number
   updatedAt: string
   updatedBy: string
   workspace: SyncedBoardWorkspace
+  resources?: {
+    wallpapers: DriveWallpaperBundle
+    tabIcon: string | null
+  }
 }
 
 export type DriveWallpaperBundle = WallpaperExportData

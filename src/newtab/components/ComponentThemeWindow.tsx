@@ -91,7 +91,7 @@ export function ComponentThemeWindow({
                       ref={(node) => {
                         presetRefs.current[preset.id] = node;
                       }}
-                      className="w-[160px] overflow-hidden rounded-md border border-[#d0d5dd] bg-white"
+                      className="w-40 overflow-hidden rounded-md border border-[#d0d5dd] bg-white"
                     >
                       <button
                         type="button"

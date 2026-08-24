@@ -40,6 +40,13 @@ export const defaultItemStyle: BoardItemStyle = {
 
 export const defaultItemDisplay: BoardItemDisplay = {
   align: "left",
+  groupCardContentAlign: "left",
+  groupCardContentDirection: "horizontal",
+  groupCardContentPosition: "center",
+  groupCardIconFrame: false,
+  groupCardIconSize: 16,
+  groupCardMinHeight: 52,
+  groupCardMinWidth: 120,
   iconSize: 16,
   iconSizeLocked: false,
   iconStyle: "soft",
@@ -52,7 +59,7 @@ export const defaultItemDisplay: BoardItemDisplay = {
 
 const defaultVariantByType = {
   date: "date-card",
-  group: "group-list",
+  group: "group-list-no-header",
   link: "link-card",
   search: "search-bar",
   title: "title-heading",
@@ -61,11 +68,10 @@ const defaultVariantByType = {
 const validVariantsByType = {
   date: ["date-card", "date-large", "date-minimal"],
   group: [
-    "group-list",
-    "group-list-plain",
     "group-list-no-header",
     "group-grid",
     "group-grid-no-header",
+    "group-grid-plain",
     "group-icons",
     "group-icons-plain",
   ],
@@ -151,6 +157,13 @@ const variantCapabilities = {
     hasSubtitle: true,
     hasTitle: false,
   },
+  "group-grid-plain": {
+    ...plain,
+    hasIcon: true,
+    hasIconStyle: true,
+    hasSubtitle: true,
+    hasTitle: true,
+  },
   "group-icons": {
     ...surfaced,
     hasIcon: false,
@@ -165,26 +178,12 @@ const variantCapabilities = {
     hasSubtitle: true,
     hasTitle: false,
   },
-  "group-list": {
-    ...surfaced,
-    hasIcon: true,
-    hasIconStyle: true,
-    hasSubtitle: true,
-    hasTitle: true,
-  },
   "group-list-no-header": {
     ...surfaced,
     hasIcon: false,
     hasIconStyle: false,
     hasSubtitle: true,
     hasTitle: false,
-  },
-  "group-list-plain": {
-    ...plain,
-    hasIcon: true,
-    hasIconStyle: true,
-    hasSubtitle: true,
-    hasTitle: true,
   },
   "link-card": {
     ...surfaced,
@@ -320,10 +319,13 @@ export function getItemDisplay(item: BoardItem): BoardItemDisplay {
   const display = { ...defaultItemDisplay, ...item.display };
   const variant = getItemVariant(item, display.variant);
   const capabilities = variantCapabilities[variant];
+  const requiresIcon =
+    item.type === "link" &&
+    (variant === "link-icon" || variant === "link-icon-plain");
 
   return {
     ...display,
-    showIcon: capabilities.hasIcon,
+    showIcon: capabilities.hasIcon && (requiresIcon || display.showIcon),
     showSubtitle: capabilities.hasSubtitle,
     showTitle: capabilities.hasTitle,
     variant,
@@ -361,7 +363,8 @@ export function getItemFontSize(
   } else if (item.type === "group") {
     heightRatio =
       display.variant === "group-grid" ||
-      display.variant === "group-grid-no-header"
+      display.variant === "group-grid-no-header" ||
+      display.variant === "group-grid-plain"
         ? 0.22
         : display.variant === "group-icons" ||
             display.variant === "group-icons-plain"
@@ -412,6 +415,8 @@ export function getItemIconSize(
         Math.round(Math.min(cellWidth, cellHeight)),
       );
     }
+
+    return display.iconSize;
   }
 
   return Math.round(availableHeight);

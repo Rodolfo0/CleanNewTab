@@ -4,9 +4,11 @@ import {
   Button,
   CloseButton,
   Group,
+  NumberInput,
   Paper,
   Portal,
   Stack,
+  Switch,
   Text,
   TextInput,
 } from "@mantine/core";
@@ -26,7 +28,12 @@ import {
 } from "../icons/brandIconData";
 
 import type { GroupItem, LinkItem } from "../model/boardItems";
-import { getItemDisplay, normalizeUrl } from "../model/boardItems";
+import {
+  getItemDisplay,
+  getNavigableUrlError,
+  normalizeUrl,
+  parseNavigableUrl,
+} from "../model/boardItems";
 import {
   normalizePhosphorIconName,
   PhosphorIcon,
@@ -45,14 +52,14 @@ type GroupLinksWindowProps = {
   opened: boolean;
   onAddGroupLink: (
     groupId: string,
-    values: { linkIcon?: string; title: string; url: string },
+    values: { iconSize?: number; linkIcon?: string; openInNewTab?: boolean; showIcon?: boolean; title: string; url: string },
   ) => void;
   onClose: () => void;
   onRemoveGroupLink: (groupId: string, linkId: string) => void;
   onUpdateGroupLink: (
     groupId: string,
     linkId: string,
-    patch: { title?: string; url?: string },
+    patch: { iconSize?: number; openInNewTab?: boolean; showIcon?: boolean; title?: string; url?: string },
   ) => void;
   onUpdateGroupLinkIcon: (
     groupId: string,
@@ -73,6 +80,9 @@ export function GroupLinksWindow({
   const [title, setTitle] = useState("");
   const [url, setUrl] = useState("");
   const [newLinkIcon, setNewLinkIcon] = useState("LinkSimpleIcon");
+  const [newLinkHasIcon, setNewLinkHasIcon] = useState(true);
+  const [newLinkIconSize, setNewLinkIconSize] = useState<number | null>(null);
+  const [newLinkOpenInNewTab, setNewLinkOpenInNewTab] = useState(false);
   const [editingLinkId, setEditingLinkId] = useState<string | null>(null);
   const [openIconSelectorId, setOpenIconSelectorId] = useState<string | null>(null);
   const [iconQuery, setIconQuery] = useState("");
@@ -106,19 +116,33 @@ export function GroupLinksWindow({
 
   function addLink() {
     const nextTitle = title.trim();
-    const nextUrl = url.trim();
+    const parsedUrl = parseNavigableUrl(url);
 
-    if (!item || !nextTitle || !nextUrl) {
+    if (!item || !nextTitle || !parsedUrl.ok) {
       return;
     }
 
     onAddGroupLink(item.id, {
+      iconSize: newLinkIconSize ?? undefined,
       linkIcon: newLinkIcon,
+      openInNewTab: newLinkOpenInNewTab,
+      showIcon: newLinkHasIcon,
       title: nextTitle,
-      url: nextUrl,
+      url: parsedUrl.url,
     });
     setTitle("");
     setUrl("");
+    setNewLinkIconSize(null);
+    setNewLinkOpenInNewTab(false);
+  }
+
+  function addLinkOnEnter(event: React.KeyboardEvent<HTMLInputElement>) {
+    if (event.key !== "Enter") {
+      return;
+    }
+
+    event.preventDefault();
+    addLink();
   }
 
   function updateIconQuery(value: string) {
@@ -290,7 +314,7 @@ export function GroupLinksWindow({
         withBorder
         radius="md"
         shadow="lg"
-        className="w-[340px] overflow-hidden bg-white"
+        className="w-85 overflow-hidden bg-white"
         style={{
           maxHeight: "calc(100vh - 24px)",
           position: "fixed",
@@ -327,12 +351,14 @@ export function GroupLinksWindow({
                   className="rounded-md border border-[#eaecf0] p-2"
                 >
                   <Group gap={6} wrap="nowrap" align="flex-start">
-                    <ActionIcon variant="light" color="gray" size="sm" radius="md">
-                      <BrandIcon
-                        name={getItemDisplay(link).linkIcon}
-                        size={14}
-                      />
-                    </ActionIcon>
+                    {getItemDisplay(link).showIcon ? (
+                      <ActionIcon variant="light" color="gray" size="sm" radius="md">
+                        <BrandIcon
+                          name={getItemDisplay(link).linkIcon}
+                          size={link.display?.iconSize ?? getItemDisplay(item).groupCardIconSize}
+                        />
+                      </ActionIcon>
+                    ) : null}
                     {editingLinkId === link.id ? (
                       <Stack gap={6} className="min-w-0 flex-1">
                         <TextInput
@@ -355,10 +381,13 @@ export function GroupLinksWindow({
                             })
                           }
                           onBlur={(event) =>
-                            onUpdateGroupLink(item.id, link.id, {
-                              url: normalizeUrl(event.currentTarget.value),
-                            })
+                            parseNavigableUrl(event.currentTarget.value).ok
+                              ? onUpdateGroupLink(item.id, link.id, {
+                                  url: normalizeUrl(event.currentTarget.value),
+                                })
+                              : undefined
                           }
+                          error={getNavigableUrlError(link.url)}
                         />
                       </Stack>
                     ) : (
@@ -413,13 +442,54 @@ export function GroupLinksWindow({
                     </ActionIcon>
                   </Group>
                   {editingLinkId === link.id
-                    ? renderIconSelector({
-                        currentIcon: getItemDisplay(link).linkIcon,
-                        id: link.id,
-                        siteUrl: link.url,
-                        onSelect: (icon) =>
-                          onUpdateGroupLinkIcon(item.id, link.id, icon),
-                      })
+                    ? <>
+                        <Switch
+                          size="xs"
+                          label="Abrir en una pestaña nueva"
+                          checked={link.openInNewTab === true}
+                          onChange={(event) =>
+                            onUpdateGroupLink(item.id, link.id, {
+                              openInNewTab: event.currentTarget.checked,
+                            })
+                          }
+                        />
+                        <Switch
+                          size="xs"
+                          label="Mostrar ícono"
+                          checked={getItemDisplay(link).showIcon}
+                          onChange={(event) =>
+                            onUpdateGroupLink(item.id, link.id, {
+                              showIcon: event.currentTarget.checked,
+                            })
+                          }
+                        />
+                        {getItemDisplay(link).showIcon
+                          ? <>
+                              <NumberInput
+                                label="Tamaño del ícono"
+                                size="xs"
+                                min={10}
+                                max={96}
+                                value={link.display?.iconSize ?? getItemDisplay(item).groupCardIconSize}
+                                onChange={(value) =>
+                                  onUpdateGroupLink(item.id, link.id, {
+                                    iconSize:
+                                      typeof value === "number"
+                                        ? value
+                                        : getItemDisplay(item).groupCardIconSize,
+                                  })
+                                }
+                              />
+                              {renderIconSelector({
+                                currentIcon: getItemDisplay(link).linkIcon,
+                                id: link.id,
+                                siteUrl: link.url,
+                                onSelect: (icon) =>
+                                  onUpdateGroupLinkIcon(item.id, link.id, icon),
+                              })}
+                            </>
+                          : null}
+                      </>
                     : null}
                 </Stack>
               ))}
@@ -437,12 +507,21 @@ export function GroupLinksWindow({
                 size="xs"
                 value={title}
                 onChange={(event) => setTitle(event.currentTarget.value)}
+                onKeyDown={addLinkOnEnter}
               />
               <TextInput
                 label="URL"
                 size="xs"
                 value={url}
                 onChange={(event) => setUrl(event.currentTarget.value)}
+                onKeyDown={addLinkOnEnter}
+                onBlur={(event) => {
+                  const result = parseNavigableUrl(event.currentTarget.value);
+                  if (result.ok) setUrl(result.url);
+                }}
+                error={
+                  url ? getNavigableUrlError(url) : undefined
+                }
               />
             </Group>
             <PopularSitesList
@@ -463,16 +542,49 @@ export function GroupLinksWindow({
                 })
               }
             />
-            {renderIconSelector({
-              currentIcon: newLinkIcon,
-              id: "new-link",
-              siteUrl: url,
-              onSelect: setNewLinkIcon,
-            })}
+            <Switch
+              size="xs"
+              label="Abrir en una pestaña nueva"
+              checked={newLinkOpenInNewTab}
+              onChange={(event) =>
+                setNewLinkOpenInNewTab(event.currentTarget.checked)
+              }
+            />
+            <Switch
+              size="xs"
+              label="Mostrar ícono"
+              checked={newLinkHasIcon}
+              onChange={(event) => setNewLinkHasIcon(event.currentTarget.checked)}
+            />
+            {newLinkHasIcon
+              ? <>
+                  <NumberInput
+                    label="Tamaño del ícono"
+                    size="xs"
+                    min={10}
+                    max={96}
+                    value={newLinkIconSize ?? getItemDisplay(item).groupCardIconSize}
+                    onChange={(value) =>
+                      setNewLinkIconSize(
+                        typeof value === "number"
+                          ? value
+                          : getItemDisplay(item).groupCardIconSize,
+                      )
+                    }
+                  />
+                  {renderIconSelector({
+                    currentIcon: newLinkIcon,
+                    id: "new-link",
+                    siteUrl: url,
+                    onSelect: setNewLinkIcon,
+                  })}
+                </>
+              : null}
             <Button
               color="dark"
               size="xs"
               leftSection={<PlusIcon size={14} />}
+              disabled={!title.trim() || !parseNavigableUrl(url).ok}
               onClick={addLink}
             >
               Agregar link
