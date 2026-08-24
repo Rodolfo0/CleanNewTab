@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.8.0](https://github.com/Rodolfo0/CleanNewTab/compare/clean-new-tab-v0.7.0...clean-new-tab-v0.8.0) (2026-08-24)
+
+
+### Features
+
+* **drive:** atomic sync and reconciliation UI ([18eba07](https://github.com/Rodolfo0/CleanNewTab/commit/18eba07bcfad311c551cd371a549a72ee1acd4ac))
+* **newtab:** add edge drawers and URL validation ([4ab8f7d](https://github.com/Rodolfo0/CleanNewTab/commit/4ab8f7d93e4b28995693180ad16910ca1553e7ae))
+* **newtab:** enhance group and link configs and rendering ([31f21c5](https://github.com/Rodolfo0/CleanNewTab/commit/31f21c54a3d0eb2ba6481809a78390fc681e0a26))
+
 ## [0.7.0](https://github.com/Rodolfo0/CleanNewTab/compare/clean-new-tab-v0.6.0...clean-new-tab-v0.7.0) (2026-08-11)
 
 
