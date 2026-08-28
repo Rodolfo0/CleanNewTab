@@ -1,9 +1,10 @@
 import type { SearchEngineId } from "./searchEngines";
+import type { JSONContent } from "@tiptap/core";
 
 export const CANVAS_HEIGHT = 720;
 export const CANVAS_WIDTH = 1280;
 
-export type BoardItemType = "link" | "group" | "title" | "date" | "search";
+export type BoardItemType = "link" | "group" | "title" | "date" | "search" | "note";
 
 export type BoardHorizontalAnchor = "left" | "center" | "right";
 export type BoardVerticalAnchor = "top" | "center" | "bottom";
@@ -54,6 +55,7 @@ export type GroupItemVariant =
 export type TitleItemVariant = "title-heading" | "title-label" | "title-panel";
 export type DateItemVariant = "date-card" | "date-large" | "date-minimal";
 export type SearchItemVariant = "search-bar" | "search-input" | "search-minimal";
+export type NoteItemVariant = "note-card";
 export type LegacyBoardItemVariant =
   | "card"
   | "group-compact"
@@ -68,6 +70,7 @@ export type BoardItemVariant =
   | LegacyBoardItemVariant
   | LinkItemVariant
   | SearchItemVariant
+  | NoteItemVariant
   | TitleItemVariant;
 
 export type BoardItemDisplay = {
@@ -90,6 +93,7 @@ export type BoardItemDisplay = {
     | DateItemVariant
     | GroupItemVariant
     | LinkItemVariant
+    | NoteItemVariant
     | SearchItemVariant
     | TitleItemVariant;
 };
@@ -118,8 +122,13 @@ export type SearchItem = BaseBoardItem & {
   searchEngine?: SearchEngineId;
   suggestionsEnabled?: boolean;
 };
+export type NoteItem = BaseBoardItem & {
+  type: "note";
+  content: JSONContent;
+  contentVersion: 1;
+};
 
-export type BoardItem = LinkItem | GroupItem | TitleItem | DateItem | SearchItem;
+export type BoardItem = LinkItem | GroupItem | TitleItem | DateItem | SearchItem | NoteItem;
 
 export type Board = {
   version: 1;

@@ -113,6 +113,48 @@ function hasValidLayout(item: unknown) {
   )
 }
 
+const noteNodeTypes = new Set([
+  'doc', 'paragraph', 'text', 'heading', 'bulletList', 'orderedList',
+  'listItem', 'taskList', 'taskItem', 'hardBreak',
+])
+const noteMarkTypes = new Set(['bold', 'italic', 'underline', 'strike', 'link', 'textStyle'])
+const noteFontSizes = new Set(['12px', '14px', '16px', '20px', '24px'])
+
+function isSafeNoteUrl(value: unknown) {
+  if (typeof value !== 'string') return false
+  const result = parseNavigableUrl(value)
+  return result.ok && (result.url.startsWith('http://') || result.url.startsWith('https://'))
+}
+
+function isValidNoteContent(value: unknown, isRoot = true): boolean {
+  if (!isRecord(value) || typeof value.type !== 'string' || !noteNodeTypes.has(value.type)) {
+    return false
+  }
+  if (isRoot && value.type !== 'doc') return false
+  if (value.type === 'text' && typeof value.text !== 'string') return false
+  if ('content' in value && value.content !== undefined) {
+    if (!Array.isArray(value.content) || !value.content.every((node) => isValidNoteContent(node, false))) {
+      return false
+    }
+  }
+  if ('marks' in value && value.marks !== undefined) {
+    if (!Array.isArray(value.marks) || !value.marks.every((mark) => {
+      if (!isRecord(mark) || typeof mark.type !== 'string' || !noteMarkTypes.has(mark.type)) return false
+      if (mark.type === 'link') return isRecord(mark.attrs) && isSafeNoteUrl(mark.attrs.href)
+      if (mark.type === 'textStyle') {
+        return isRecord(mark.attrs) && noteFontSizes.has(String(mark.attrs.fontSize))
+      }
+      return !('attrs' in mark) || mark.attrs === undefined || isRecord(mark.attrs)
+    })) return false
+  }
+  if ('attrs' in value && value.attrs !== undefined) {
+    if (!isRecord(value.attrs)) return false
+    if (value.type === 'heading' && ![1, 2, 3].includes(Number(value.attrs.level))) return false
+    if (value.type === 'taskItem' && typeof value.attrs.checked !== 'boolean') return false
+  }
+  return true
+}
+
 function isValidItem(item: unknown): item is BoardItem {
   if (!isRecord(item) || typeof item.id !== 'string' || typeof item.title !== 'string' || !hasValidLayout(item)) {
     return false
@@ -134,6 +176,10 @@ function isValidItem(item: unknown): item is BoardItem {
 
   if (item.type === 'search') {
     return typeof item.placeholder === 'string'
+  }
+
+  if (item.type === 'note') {
+    return item.contentVersion === 1 && isValidNoteContent(item.content)
   }
 
   if (item.type === 'title' || item.type === 'date') {

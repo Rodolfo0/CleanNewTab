@@ -26,6 +26,9 @@ export const componentThemeIds = [
   "gradient-aurora",
   "gradient-sunset",
   "gradient-ocean",
+  "gradient-aurora-transparent",
+  "gradient-sunset-transparent",
+  "gradient-ocean-transparent",
 ] as const;
 
 export type ComponentThemeId = (typeof componentThemeIds)[number];
@@ -601,6 +604,75 @@ export const componentThemePresets: ComponentThemePreset[] = [
       border: "rgba(82,217,239,0.36)",
       input: "rgba(7,35,53,0.76)",
       text: "#e1faff",
+      buttonText: "#073540",
+    },
+  }),
+  createColorPreset({
+    id: "gradient-aurora-transparent",
+    name: "Aurora transparente",
+    light: {
+      accent: "#6d55d9",
+      background: "rgba(231,251,245,0.30)",
+      backgroundImage:
+        "linear-gradient(135deg, rgba(166,255,216,0.48) 0%, rgba(165,190,255,0.42) 52%, rgba(237,171,255,0.46) 100%)",
+      border: "rgba(105,110,190,0.42)",
+      input: "rgba(255,255,255,0.56)",
+      text: "#283652",
+    },
+    dark: {
+      accent: "#b8a4ff",
+      background: "rgba(10,30,35,0.34)",
+      backgroundImage:
+        "linear-gradient(135deg, rgba(18,111,88,0.48) 0%, rgba(43,59,137,0.48) 52%, rgba(111,43,124,0.46) 100%)",
+      border: "rgba(190,185,255,0.46)",
+      input: "rgba(10,18,35,0.58)",
+      text: "#f5f2ff",
+      buttonText: "#251f50",
+    },
+  }),
+  createColorPreset({
+    id: "gradient-sunset-transparent",
+    name: "Atardecer transparente",
+    light: {
+      accent: "#c9505b",
+      background: "rgba(255,240,220,0.28)",
+      backgroundImage:
+        "linear-gradient(135deg, rgba(255,193,104,0.48) 0%, rgba(255,133,142,0.44) 50%, rgba(171,139,255,0.42) 100%)",
+      border: "rgba(196,79,91,0.42)",
+      input: "rgba(255,250,246,0.56)",
+      text: "#612d3b",
+    },
+    dark: {
+      accent: "#ff9b8f",
+      background: "rgba(54,25,35,0.34)",
+      backgroundImage:
+        "linear-gradient(135deg, rgba(151,78,28,0.48) 0%, rgba(145,45,66,0.46) 50%, rgba(80,54,146,0.46) 100%)",
+      border: "rgba(255,164,150,0.46)",
+      input: "rgba(49,20,33,0.58)",
+      text: "#fff3ed",
+      buttonText: "#47242b",
+    },
+  }),
+  createColorPreset({
+    id: "gradient-ocean-transparent",
+    name: "Océano transparente",
+    light: {
+      accent: "#087e9a",
+      background: "rgba(225,247,251,0.28)",
+      backgroundImage:
+        "linear-gradient(135deg, rgba(113,236,247,0.46) 0%, rgba(102,179,244,0.44) 52%, rgba(154,145,255,0.42) 100%)",
+      border: "rgba(24,127,163,0.42)",
+      input: "rgba(247,254,255,0.56)",
+      text: "#123f54",
+    },
+    dark: {
+      accent: "#52d9ef",
+      background: "rgba(5,37,48,0.34)",
+      backgroundImage:
+        "linear-gradient(135deg, rgba(4,119,132,0.48) 0%, rgba(22,84,143,0.48) 52%, rgba(68,62,157,0.46) 100%)",
+      border: "rgba(95,225,245,0.46)",
+      input: "rgba(5,31,49,0.58)",
+      text: "#e5fbff",
       buttonText: "#073540",
     },
   }),

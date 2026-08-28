@@ -61,6 +61,7 @@ const defaultVariantByType = {
   date: "date-card",
   group: "group-list-no-header",
   link: "link-card",
+  note: "note-card",
   search: "search-bar",
   title: "title-heading",
 } satisfies Record<BoardItemType, BoardItemDisplay["variant"]>;
@@ -84,6 +85,7 @@ const validVariantsByType = {
     "link-strip",
     "link-tile",
   ],
+  note: ["note-card"],
   search: ["search-bar", "search-input", "search-minimal"],
   title: ["title-heading", "title-label", "title-panel"],
 } satisfies Record<BoardItemType, BoardItemDisplay["variant"][]>;
@@ -233,6 +235,13 @@ const variantCapabilities = {
     hasIconStyle: true,
     hasSubtitle: false,
     hasTitle: true,
+  },
+  "note-card": {
+    ...surfaced,
+    hasIcon: false,
+    hasIconStyle: false,
+    hasSubtitle: false,
+    hasTitle: false,
   },
   "search-bar": {
     ...surfaced,

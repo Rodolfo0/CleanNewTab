@@ -3,6 +3,7 @@ import type {
   PointerEvent as ReactPointerEvent,
 } from "react";
 import { lazy, Suspense, useState } from "react";
+import type { JSONContent } from "@tiptap/core";
 
 import {
   ActionIcon,
@@ -21,6 +22,7 @@ import {
   BoardItem as BoardItemData,
   BoardItemStyle,
   BoardLayout,
+  ResizeDirection,
   clampLayout,
   getAnchoredXFromLeft,
   getAnchoredYFromTop,
@@ -46,6 +48,9 @@ const GroupRender = lazy(() =>
 const LinkRender = lazy(() =>
   import("../elements/link/LinkRender").then((module) => ({ default: module.LinkRender })),
 );
+const NoteRender = lazy(() =>
+  import("../elements/note/NoteRender").then((module) => ({ default: module.NoteRender })),
+);
 const TitleRender = lazy(() =>
   import("../elements/title/TitleRender").then((module) => ({ default: module.TitleRender })),
 );
@@ -68,6 +73,9 @@ type BoardItemProps = {
   onRemove: () => void;
   onAddLink: () => void;
   onOpenTitleDesign: () => void;
+  onNoteContentChange: (itemId: string, content: JSONContent) => void;
+  onInitialNoteEditStarted: () => void;
+  startNoteInEditMode: boolean;
   isTitleDesignOpen: boolean;
 };
 
@@ -88,11 +96,19 @@ function ItemContent({
   isEditing,
   today,
   componentTheme,
+  onNoteContentChange,
+  onInitialNoteEditStarted,
+  noteFrameInset,
+  startNoteInEditMode,
 }: {
   item: BoardItemData;
   isEditing: boolean;
   today: string;
   componentTheme: Partial<BoardItemStyle>;
+  onNoteContentChange: (itemId: string, content: JSONContent) => void;
+  onInitialNoteEditStarted: () => void;
+  noteFrameInset: number;
+  startNoteInEditMode: boolean;
 }) {
   if (item.type === "search") {
     return <SearchRender item={item} isEditing={isEditing} componentTheme={componentTheme} />;
@@ -106,6 +122,17 @@ function ItemContent({
         <TitleRender item={item} componentTheme={componentTheme} />
       ) : item.type === "date" ? (
         <DateRender item={item} today={today} componentTheme={componentTheme} />
+      ) : item.type === "note" ? (
+        <NoteRender
+          key={isEditing ? "layout" : "content"}
+          item={item}
+          componentTheme={componentTheme}
+          editingAllowed={!isEditing}
+          frameInset={noteFrameInset}
+          onContentChange={(content) => onNoteContentChange(item.id, content)}
+          onInitialEditStarted={onInitialNoteEditStarted}
+          startInEditMode={!isEditing && startNoteInEditMode}
+        />
       ) : (
         <LinkRender item={item} componentTheme={componentTheme} />
       )}
@@ -220,6 +247,9 @@ export function BoardItem({
   onRemove,
   onAddLink,
   onOpenTitleDesign,
+  onNoteContentChange,
+  onInitialNoteEditStarted,
+  startNoteInEditMode,
   isTitleDesignOpen,
 }: BoardItemProps) {
   const [snapGuide, setSnapGuide] = useState<SnapGuide | null>(null);
@@ -243,6 +273,7 @@ export function BoardItem({
       : ""
   }`;
   const visualStyle = getItemStyle(item, componentTheme);
+  const itemLabel = item.type === "note" ? "nota" : item.title;
   const surfaceStyle = {
     backgroundColor: visualStyle.backgroundColor,
     backgroundImage: visualStyle.backgroundImage ?? "none",
@@ -257,8 +288,9 @@ export function BoardItem({
     padding: visualStyle.padding,
     width: "100%",
   } satisfies CSSProperties;
-  const surfaceClassName =
-    "box-border h-full min-h-0 w-full overflow-hidden transition-shadow";
+  const surfaceClassName = `box-border h-full min-h-0 w-full transition-shadow ${
+    item.type === "note" ? "overflow-visible" : "overflow-hidden"
+  }`;
 
   function startMove(
     event: ReactPointerEvent<HTMLElement>,
@@ -338,7 +370,10 @@ export function BoardItem({
     window.addEventListener("pointercancel", handleEnd);
   }
 
-  function startResize(event: ReactPointerEvent<HTMLElement>) {
+  function startResize(
+    event: ReactPointerEvent<HTMLElement>,
+    direction: ResizeDirection,
+  ) {
     if (!isEditing) {
       return;
     }
@@ -360,6 +395,7 @@ export function BoardItem({
           deltaX: moveEvent.clientX - startX,
           deltaY: moveEvent.clientY - startY,
           fromCenter: moveEvent.ctrlKey || moveEvent.metaKey,
+          direction,
           item,
           keepAspectRatio: moveEvent.shiftKey,
           startLayout,
@@ -383,6 +419,25 @@ export function BoardItem({
     window.addEventListener("pointercancel", handleEnd);
   }
 
+  const resizeHandles = [
+    { direction: "nw", label: "Cambiar tamaño desde arriba a la izquierda", cursor: "cursor-nwse-resize", height: 14, width: 14, left: viewportLeft - 7, top: viewportTop - 7 },
+    { direction: "n", label: "Cambiar alto desde arriba", cursor: "cursor-ns-resize", height: 10, width: 28, left: viewportLeft + layout.width / 2 - 14, top: viewportTop - 5 },
+    { direction: "ne", label: "Cambiar tamaño desde arriba a la derecha", cursor: "cursor-nesw-resize", height: 14, width: 14, left: viewportLeft + layout.width - 7, top: viewportTop - 7 },
+    { direction: "e", label: "Cambiar ancho desde la derecha", cursor: "cursor-ew-resize", height: 28, width: 10, left: viewportLeft + layout.width - 5, top: viewportTop + layout.height / 2 - 14 },
+    { direction: "se", label: "Cambiar tamaño desde abajo a la derecha", cursor: "cursor-nwse-resize", height: 14, width: 14, left: viewportLeft + layout.width - 7, top: viewportTop + layout.height - 7 },
+    { direction: "s", label: "Cambiar alto desde abajo", cursor: "cursor-ns-resize", height: 10, width: 28, left: viewportLeft + layout.width / 2 - 14, top: viewportTop + layout.height - 5 },
+    { direction: "sw", label: "Cambiar tamaño desde abajo a la izquierda", cursor: "cursor-nesw-resize", height: 14, width: 14, left: viewportLeft - 7, top: viewportTop + layout.height - 7 },
+    { direction: "w", label: "Cambiar ancho desde la izquierda", cursor: "cursor-ew-resize", height: 28, width: 10, left: viewportLeft - 5, top: viewportTop + layout.height / 2 - 14 },
+  ] satisfies Array<{
+    direction: ResizeDirection;
+    label: string;
+    cursor: string;
+    height: number;
+    width: number;
+    left: number;
+    top: number;
+  }>;
+
   function handleItemPointerDown(event: ReactPointerEvent<HTMLElement>) {
     if (!isEditing) {
       return;
@@ -398,12 +453,20 @@ export function BoardItem({
       style={surfaceStyle}
       onPointerDown={handleItemPointerDown}
     >
-      <div className="box-border h-full min-h-0 w-full overflow-hidden">
+      <div
+        className={`box-border h-full min-h-0 w-full ${
+          item.type === "note" ? "overflow-visible" : "overflow-hidden"
+        }`}
+      >
         <ItemContent
           item={item}
           isEditing={isEditing}
           today={today}
           componentTheme={componentTheme}
+          onNoteContentChange={onNoteContentChange}
+          onInitialNoteEditStarted={onInitialNoteEditStarted}
+          noteFrameInset={visualStyle.padding + visualStyle.borderWidth}
+          startNoteInEditMode={startNoteInEditMode}
         />
       </div>
     </div>
@@ -455,7 +518,7 @@ export function BoardItem({
               <ActionIcon
                 variant="default"
                 color="gray"
-                aria-label={`Mover ${item.title}`}
+                aria-label={`Mover ${itemLabel}`}
                 className="cursor-move"
                 onPointerDown={startMove}
               >
@@ -479,7 +542,7 @@ export function BoardItem({
               <ActionIcon
                 variant="default"
                 color="gray"
-                aria-label={`Configurar ${item.title}`}
+                aria-label={`Configurar ${itemLabel}`}
                 onPointerDown={(event) => event.stopPropagation()}
                 onClick={onConfigure}
               >
@@ -505,7 +568,7 @@ export function BoardItem({
               <ActionIcon
                 variant="default"
                 color="red"
-                aria-label={`Eliminar ${item.title}`}
+                aria-label={`Eliminar ${itemLabel}`}
                 onPointerDown={(event) => event.stopPropagation()}
                 onClick={onRemove}
               >
@@ -514,20 +577,21 @@ export function BoardItem({
             </Tooltip>
           </Group>
 
-          <Tooltip label="Cambiar tamaño">
+          {resizeHandles.map((handle) => (
             <button
+              key={handle.direction}
               type="button"
-              className="absolute z-10 grid h-8 w-8 cursor-se-resize place-items-center rounded-full border border-[#98a2b3] bg-white text-[#475467] shadow-sm transition-colors hover:bg-[#f2f4f7]"
+              className={`absolute z-10 rounded-full border border-[#98a2b3] bg-white shadow-sm transition-colors hover:border-[#228be6] hover:bg-[#e7f5ff] ${handle.cursor}`}
               style={{
-                left: viewportLeft + layout.width - 16,
-                top: viewportTop + layout.height - 16,
+                height: handle.height,
+                left: handle.left,
+                top: handle.top,
+                width: handle.width,
               }}
-              aria-label={`Cambiar tamaño de ${item.title}`}
-              onPointerDown={startResize}
-            >
-              <ArrowsOutCardinalIcon size={16} />
-            </button>
-          </Tooltip>
+              aria-label={`${handle.label} de ${itemLabel}`}
+              onPointerDown={(event) => startResize(event, handle.direction)}
+            />
+          ))}
         </>
       ) : null}
     </>

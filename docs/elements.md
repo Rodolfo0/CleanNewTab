@@ -22,6 +22,8 @@ Cada elemento guarda:
 - `style`: color, borde, padding, fuente, etc.
 - `display`: variante, ícono, alineación y opciones visuales.
 
+En edición, el elemento muestra tiradores en sus cuatro lados y cuatro esquinas. Un lado cambia solo ese eje y mantiene fijo el borde contrario. Una esquina cambia ancho y alto. `Shift` conserva la proporción al arrastrar una esquina y `Ctrl` o `Cmd` redimensiona desde el centro.
+
 ## Link
 
 Tipo: `link`

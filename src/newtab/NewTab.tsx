@@ -1,4 +1,5 @@
 import type { ChangeEvent } from "react";
+import type { JSONContent } from "@tiptap/core";
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { useHotkeys, useViewportSize } from "@mantine/hooks";
 import { useComputedColorScheme, useMantineColorScheme } from "@mantine/core";
@@ -104,6 +105,7 @@ const defaultElementValues = {
   group: { title: "Grupo", url: "" },
   link: { title: "Nuevo link", url: "https://example.com" },
   search: { title: "Buscar", url: "", placeholder: "Buscar en la web" },
+  note: { title: "", url: "" },
   title: { title: "Título", url: "" },
 } satisfies Record<
   BoardItemType,
@@ -281,6 +283,7 @@ export function NewTab() {
   );
   const [isEditing, setIsEditing] = useState(false);
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
+  const [newNoteId, setNewNoteId] = useState<string | null>(null);
   const [floatingWindow, setFloatingWindow] =
     useState<FloatingWindowState>(null);
   const [currentWallpaperBySpace, setCurrentWallpaperBySpace] = useState<
@@ -882,7 +885,16 @@ export function NewTab() {
     );
     if (hasInvalidUrl) return;
 
-    const nextBoard = copyBoard(draftBoard);
+    const nextBoard = copyBoard({
+      ...draftBoard,
+      items: draftBoard.items.map((item) => {
+        if (item.type !== "note") return item;
+        const savedNote = activeSpace.board.items.find(
+          (savedItem) => savedItem.id === item.id && savedItem.type === "note",
+        );
+        return savedNote?.type === "note" ? { ...item, content: savedNote.content } : item;
+      }),
+    });
 
     setWorkspace((currentWorkspace) => ({
       ...currentWorkspace,
@@ -901,12 +913,14 @@ export function NewTab() {
     setDraftBoard(copyBoard(activeSpace.board));
     setIsEditing(false);
     setSelectedItemId(null);
+    setNewNoteId(null);
     setFloatingWindow(null);
   }
 
   function closeEditingState() {
     setIsEditing(false);
     setSelectedItemId(null);
+    setNewNoteId(null);
     setFloatingWindow(null);
   }
 
@@ -1393,7 +1407,12 @@ export function NewTab() {
 
     if (nextItemId) {
       setSelectedItemId(nextItemId);
-      setFloatingWindow("config");
+      if (type === "note") {
+        setNewNoteId(nextItemId);
+        setFloatingWindow(null);
+      } else {
+        setFloatingWindow("config");
+      }
     }
   }
 
@@ -1429,6 +1448,35 @@ export function NewTab() {
           }),
         };
       }),
+    }));
+  }
+
+  function updateNoteContent(itemId: string, content: JSONContent) {
+    if (isEditing) {
+      setDraftBoard((currentBoard) => ({
+        ...currentBoard,
+        items: currentBoard.items.map((item) =>
+          item.id === itemId && item.type === "note" ? { ...item, content } : item,
+        ),
+      }));
+      return;
+    }
+
+    setWorkspace((currentWorkspace) => ({
+      ...currentWorkspace,
+      spaces: currentWorkspace.spaces.map((space) =>
+        space.id === currentWorkspace.activeSpaceId
+          ? {
+              ...space,
+              board: {
+                ...space.board,
+                items: space.board.items.map((item) =>
+                  item.id === itemId && item.type === "note" ? { ...item, content } : item,
+                ),
+              },
+            }
+          : space,
+      ),
     }));
   }
 
@@ -2075,6 +2123,9 @@ export function NewTab() {
                 setSelectedItemId(item.id);
                 setFloatingWindow("title-design");
               }}
+              onNoteContentChange={updateNoteContent}
+              onInitialNoteEditStarted={() => setNewNoteId(null)}
+              startNoteInEditMode={!isEditing && newNoteId === item.id}
             />
           ))
         )}

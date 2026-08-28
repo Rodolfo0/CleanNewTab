@@ -13,6 +13,7 @@ import {
   FolderSimpleIcon,
   LinkSimpleIcon,
   MagnifyingGlassIcon,
+  NotePencilIcon,
   TextTIcon,
 } from "@phosphor-icons/react";
 
@@ -40,6 +41,7 @@ const elementOptions = [
   { id: "title", value: "title", label: "Título", icon: TextTIcon },
   { id: "date", value: "date", label: "Fecha", icon: CalendarBlankIcon },
   { id: "search", value: "search", label: "Búsqueda", icon: MagnifyingGlassIcon },
+  { id: "note", value: "note", label: "Nota", icon: NotePencilIcon },
 ] satisfies Array<{
   id: string;
   value: BoardItemType;

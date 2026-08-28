@@ -8,6 +8,7 @@ import type {
   DateItem,
   GroupItem,
   LinkItem,
+  NoteItem,
   SearchItem,
   TitleItem,
 } from "./boardItemTypes";
@@ -55,11 +56,30 @@ export function normalizeUrl(value: string) {
 }
 
 function getDefaultSize(type: BoardItemType): Pick<BoardLayout, "width" | "height"> {
+  if (type === "note") return { width: 320, height: 220 };
   if (type === "title") return { width: 520, height: 48 };
   if (type === "date") return { width: 280, height: 76 };
   if (type === "group") return { width: 320, height: 96 };
   if (type === "search") return { width: 560, height: 88 };
   return { width: DEFAULT_ITEM_WIDTH, height: DEFAULT_ITEM_HEIGHT };
+}
+
+function createNoteElement(
+  layout: BoardLayout,
+  display?: Partial<BoardItemDisplay>,
+  style?: Partial<BoardItemStyle>,
+): NoteItem {
+  return {
+    id: createId(),
+    type: "note",
+    title: "",
+    content: { type: "doc", content: [{ type: "paragraph" }] },
+    contentVersion: 1,
+    layout,
+    display,
+    style: { padding: 12, ...style },
+    createdAt: new Date().toISOString(),
+  };
 }
 
 export function getNextLayout(items: BoardItem[], type: BoardItemType): BoardLayout {
@@ -193,5 +213,6 @@ export function createBoardItem({
       suggestionsEnabled,
     );
   }
+  if (type === "note") return createNoteElement(layout, display, style);
   return { ...createLink({ title, url, layout }), display, style };
 }

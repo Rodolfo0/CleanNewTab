@@ -30,7 +30,14 @@ const themeGroups = [
   },
   {
     name: "Degradados",
-    ids: ["gradient-aurora", "gradient-sunset", "gradient-ocean"],
+    ids: [
+      "gradient-aurora",
+      "gradient-sunset",
+      "gradient-ocean",
+      "gradient-aurora-transparent",
+      "gradient-sunset-transparent",
+      "gradient-ocean-transparent",
+    ],
   },
   {
     name: "Daily",

@@ -107,6 +107,7 @@ export function clampLayout(layout: BoardLayout): BoardLayout {
 }
 
 export function getItemMaxHeight(item: BoardItem): number | undefined {
+  if (item.type === "note") return undefined;
   const style = getItemStyle(item);
   const display = getItemDisplay(item);
 
@@ -176,12 +177,15 @@ export function clampItemLayout(item: BoardItem, layout: BoardLayout): BoardLayo
     : { ...clampedLayout, height: Math.min(clampedLayout.height, maxHeight) };
 }
 
+export type ResizeDirection = "n" | "ne" | "e" | "se" | "s" | "sw" | "w" | "nw";
+
 export function resizeItemLayout({
   deltaX,
   deltaY,
   fromCenter,
   item,
   keepAspectRatio,
+  direction,
   startLayout,
   startLeft,
   startTop,
@@ -193,20 +197,30 @@ export function resizeItemLayout({
   fromCenter: boolean;
   item: BoardItem;
   keepAspectRatio: boolean;
+  direction: ResizeDirection;
   startLayout: BoardLayout;
   startLeft: number;
   startTop: number;
   viewportHeight: number;
   viewportWidth: number;
 }): BoardLayout {
-  const resizeFactor = fromCenter ? 2 : 1;
-  const rawWidth = startLayout.width + deltaX * resizeFactor;
-  const rawHeight = startLayout.height + deltaY * resizeFactor;
+  const changesLeft = direction.includes("w");
+  const changesRight = direction.includes("e");
+  const changesTop = direction.includes("n");
+  const changesBottom = direction.includes("s");
+  const changesWidth = changesLeft || changesRight;
+  const changesHeight = changesTop || changesBottom;
+  const isCorner = changesWidth && changesHeight;
+  const resizeFactor = fromCenter && isCorner ? 2 : 1;
+  const widthDelta = changesLeft ? -deltaX : changesRight ? deltaX : 0;
+  const heightDelta = changesTop ? -deltaY : changesBottom ? deltaY : 0;
+  const rawWidth = startLayout.width + widthDelta * resizeFactor;
+  const rawHeight = startLayout.height + heightDelta * resizeFactor;
   const maxHeight = getItemMaxHeight(item);
   let width: number;
   let height: number;
 
-  if (keepAspectRatio) {
+  if (keepAspectRatio && isCorner) {
     const widthScale = rawWidth / startLayout.width;
     const heightScale = rawHeight / startLayout.height;
     const widthChange = Math.abs(widthScale - 1);
@@ -223,20 +237,24 @@ export function resizeItemLayout({
     width = startLayout.width * scale;
     height = startLayout.height * scale;
   } else {
-    width = Math.max(MIN_ITEM_WIDTH, rawWidth);
-    height = Math.max(MIN_ITEM_HEIGHT, rawHeight);
+    width = changesWidth ? Math.max(MIN_ITEM_WIDTH, rawWidth) : startLayout.width;
+    height = changesHeight ? Math.max(MIN_ITEM_HEIGHT, rawHeight) : startLayout.height;
 
     if (maxHeight !== undefined) {
       height = Math.min(height, maxHeight);
     }
   }
 
-  const left = fromCenter
+  const left = fromCenter && isCorner
     ? startLeft + (startLayout.width - width) / 2
-    : startLeft;
-  const top = fromCenter
+    : changesLeft
+      ? startLeft + startLayout.width - width
+      : startLeft;
+  const top = fromCenter && isCorner
     ? startTop + (startLayout.height - height) / 2
-    : startTop;
+    : changesTop
+      ? startTop + startLayout.height - height
+      : startTop;
   const anchorX = getLayoutAnchorX(startLayout);
   const anchorY = getLayoutAnchorY(startLayout);
 

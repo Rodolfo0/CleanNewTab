@@ -1,5 +1,30 @@
 @import "tailwindcss";
 
+.note-editor-content {
+  min-height: 100%;
+  outline: none;
+  overflow-wrap: anywhere;
+}
+
+.note-editor-content p,
+.note-editor-content h1,
+.note-editor-content h2,
+.note-editor-content h3 {
+  margin: 0 0 0.4em;
+}
+
+.note-editor-content h1 { font-size: 1.6em; line-height: 1.15; }
+.note-editor-content h2 { font-size: 1.35em; line-height: 1.2; }
+.note-editor-content h3 { font-size: 1.15em; line-height: 1.25; }
+.note-editor-content ul,
+.note-editor-content ol { margin: 0.25em 0; padding-left: 1.35em; }
+.note-editor-content ul { list-style: disc; }
+.note-editor-content ol { list-style: decimal; }
+.note-editor-content ul[data-type="taskList"] { list-style: none; padding-left: 0; }
+.note-editor-content ul[data-type="taskList"] li { display: flex; gap: 0.4em; align-items: flex-start; }
+.note-editor-content ul[data-type="taskList"] li > div { flex: 1; min-width: 0; }
+.note-editor-content a { color: #1971c2; text-decoration: underline; }
+
 :root {
   font-family:
     Inter,

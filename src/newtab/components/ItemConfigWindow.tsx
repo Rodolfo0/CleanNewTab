@@ -14,6 +14,7 @@ import { CircleIcon, DotsSixVerticalIcon } from "@phosphor-icons/react";
 import { DateConfig } from "../elements/date/DateConfig";
 import { GroupConfig } from "../elements/group/GroupConfig";
 import { LinkConfig } from "../elements/link/LinkConfig";
+import { NoteConfig } from "../elements/note/NoteConfig";
 import { SearchConfig } from "../elements/search/SearchConfig";
 import { ConfigAccordion } from "../elements/shared/configSections";
 import { TitleConfig } from "../elements/title/TitleConfig";
@@ -80,6 +81,10 @@ function ElementPropsConfig({
 
   if (item.type === "title") {
     return <TitleConfig item={item} onChange={onChange} />;
+  }
+
+  if (item.type === "note") {
+    return <NoteConfig item={item} onChange={onChange} />;
   }
 
   return <DateConfig item={item} onChange={onChange} />;
