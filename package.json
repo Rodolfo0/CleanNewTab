@@ -17,6 +17,7 @@
     "@mantine/hooks": "^9.4.1",
     "@phosphor-icons/react": "^2.1.10",
     "@tailwindcss/vite": "^4.3.2",
+    "@tiptap/extension-link": "^3.30.5",
     "@tiptap/extension-list": "^3.30.5",
     "@tiptap/extension-text-style": "^3.30.5",
     "@tiptap/extensions": "^3.30.5",

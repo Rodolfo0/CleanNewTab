@@ -126,6 +126,10 @@ export type NoteItem = BaseBoardItem & {
   type: "note";
   content: JSONContent;
   contentVersion: 1;
+  checklist?: {
+    hideCompleted?: boolean;
+    moveCompletedToEnd?: boolean;
+  };
 };
 
 export type BoardItem = LinkItem | GroupItem | TitleItem | DateItem | SearchItem | NoteItem;

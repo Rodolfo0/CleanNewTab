@@ -33,6 +33,7 @@ import {
   type BoardItemDisplay,
   type BoardItemStyle,
   type BoardLayout,
+  type NoteItem,
   type SearchEngineId,
 } from "./model/boardItems";
 import { useWallpapers, type WallpaperExportData } from "./hooks/useSessionWallpaper";
@@ -1480,6 +1481,30 @@ export function NewTab() {
     }));
   }
 
+  function updateNoteChecklist(
+    itemId: string,
+    checklist: NonNullable<NoteItem["checklist"]>,
+  ) {
+    setWorkspace((currentWorkspace) => ({
+      ...currentWorkspace,
+      spaces: currentWorkspace.spaces.map((space) =>
+        space.id === currentWorkspace.activeSpaceId
+          ? {
+              ...space,
+              board: {
+                ...space.board,
+                items: space.board.items.map((item) =>
+                  item.id === itemId && item.type === "note"
+                    ? { ...item, checklist }
+                    : item,
+                ),
+              },
+            }
+          : space,
+      ),
+    }));
+  }
+
   function updateItemConfig(
     itemId: string,
     patch: {
@@ -2124,6 +2149,7 @@ export function NewTab() {
                 setFloatingWindow("title-design");
               }}
               onNoteContentChange={updateNoteContent}
+              onNoteChecklistChange={updateNoteChecklist}
               onInitialNoteEditStarted={() => setNewNoteId(null)}
               startNoteInEditMode={!isEditing && newNoteId === item.id}
             />

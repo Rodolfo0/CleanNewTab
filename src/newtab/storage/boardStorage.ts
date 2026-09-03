@@ -140,7 +140,17 @@ function isValidNoteContent(value: unknown, isRoot = true): boolean {
   if ('marks' in value && value.marks !== undefined) {
     if (!Array.isArray(value.marks) || !value.marks.every((mark) => {
       if (!isRecord(mark) || typeof mark.type !== 'string' || !noteMarkTypes.has(mark.type)) return false
-      if (mark.type === 'link') return isRecord(mark.attrs) && isSafeNoteUrl(mark.attrs.href)
+      if (mark.type === 'link') {
+        if (!isRecord(mark.attrs) || !isSafeNoteUrl(mark.attrs.href)) return false
+        if ('openInNewTab' in mark.attrs && typeof mark.attrs.openInNewTab !== 'boolean') return false
+        if ('card' in mark.attrs && typeof mark.attrs.card !== 'boolean') return false
+        if ('domain' in mark.attrs && (
+          typeof mark.attrs.domain !== 'string' ||
+          mark.attrs.domain.length > 255 ||
+          /[<>]/.test(mark.attrs.domain)
+        )) return false
+        return true
+      }
       if (mark.type === 'textStyle') {
         return isRecord(mark.attrs) && noteFontSizes.has(String(mark.attrs.fontSize))
       }
@@ -150,6 +160,10 @@ function isValidNoteContent(value: unknown, isRoot = true): boolean {
   if ('attrs' in value && value.attrs !== undefined) {
     if (!isRecord(value.attrs)) return false
     if (value.type === 'heading' && ![1, 2, 3].includes(Number(value.attrs.level))) return false
+    if ((value.type === 'paragraph' || value.type === 'heading') &&
+      'indent' in value.attrs &&
+      (!Number.isInteger(value.attrs.indent) || Number(value.attrs.indent) < 0 || Number(value.attrs.indent) > 4)
+    ) return false
     if (value.type === 'taskItem' && typeof value.attrs.checked !== 'boolean') return false
   }
   return true
@@ -179,7 +193,13 @@ function isValidItem(item: unknown): item is BoardItem {
   }
 
   if (item.type === 'note') {
-    return item.contentVersion === 1 && isValidNoteContent(item.content)
+    return item.contentVersion === 1 &&
+      isValidNoteContent(item.content) &&
+      (!('checklist' in item) || item.checklist === undefined || (
+        isRecord(item.checklist) &&
+        (!('hideCompleted' in item.checklist) || typeof item.checklist.hideCompleted === 'boolean') &&
+        (!('moveCompletedToEnd' in item.checklist) || typeof item.checklist.moveCompletedToEnd === 'boolean')
+      ))
   }
 
   if (item.type === 'title' || item.type === 'date') {
