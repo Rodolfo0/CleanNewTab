@@ -44,6 +44,14 @@
   to { opacity: 0.55; transform: translateY(0); }
 }
 .note-editor-content a { color: #1971c2; text-decoration: underline; }
+.note-editor-content .note-search-match {
+  background: rgba(255, 212, 59, 0.45);
+  border-radius: 2px;
+}
+.note-editor-content .note-search-current {
+  background: rgba(255, 145, 0, 0.7);
+  border-radius: 2px;
+}
 .note-editor-content a[data-link-card="true"] {
   display: inline-grid;
   max-width: 100%;

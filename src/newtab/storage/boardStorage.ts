@@ -164,6 +164,11 @@ function isValidNoteContent(value: unknown, isRoot = true): boolean {
       'indent' in value.attrs &&
       (!Number.isInteger(value.attrs.indent) || Number(value.attrs.indent) < 0 || Number(value.attrs.indent) > 4)
     ) return false
+    if ((value.type === 'paragraph' || value.type === 'heading') &&
+      'textAlign' in value.attrs &&
+      value.attrs.textAlign !== null &&
+      !['left', 'center', 'right', 'justify'].includes(String(value.attrs.textAlign))
+    ) return false
     if (value.type === 'taskItem' && typeof value.attrs.checked !== 'boolean') return false
   }
   return true

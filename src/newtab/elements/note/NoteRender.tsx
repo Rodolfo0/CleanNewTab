@@ -1,65 +1,37 @@
 import { Extension, type Editor, type JSONContent } from "@tiptap/core";
 import Link from "@tiptap/extension-link";
+import TextAlign from "@tiptap/extension-text-align";
 import { EditorContent, useEditor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import { TaskItem, TaskList } from "@tiptap/extension-list";
 import { FontSize, TextStyle } from "@tiptap/extension-text-style";
 import { CharacterCount } from "@tiptap/extensions";
+import { TextSelection } from "@tiptap/pm/state";
 import {
   ActionIcon,
-  Button,
-  Group,
   Popover,
-  Select,
   Stack,
   Switch,
-  TextInput,
   Tooltip,
 } from "@mantine/core";
 import {
-  CheckSquareIcon,
-  ArrowLeftIcon,
-  ArrowRightIcon,
   CheckIcon,
-  LinkIcon,
-  ListBulletsIcon,
-  ListNumbersIcon,
+  MagnifyingGlassIcon,
   PencilSimpleIcon,
-  TextBIcon,
-  TextItalicIcon,
-  TextStrikethroughIcon,
-  TextUnderlineIcon,
-  XIcon,
 } from "@phosphor-icons/react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { BoardItemStyle, NoteItem } from "../../model/boardItems";
-
-const fontSizes = [
-  { label: "XS", value: "12px" },
-  { label: "SM", value: "14px" },
-  { label: "MD", value: "16px" },
-  { label: "LG", value: "20px" },
-  { label: "XL", value: "24px" },
-];
-
-function changeIndent(editor: Editor, direction: -1 | 1) {
-  if (editor.isActive("taskItem")) {
-    return direction > 0
-      ? editor.commands.sinkListItem("taskItem")
-      : editor.commands.liftListItem("taskItem");
-  }
-  if (editor.isActive("listItem")) {
-    return direction > 0
-      ? editor.commands.sinkListItem("listItem")
-      : editor.commands.liftListItem("listItem");
-  }
-
-  const type = editor.isActive("heading") ? "heading" : "paragraph";
-  const current = Number(editor.getAttributes(type).indent ?? 0);
-  const indent = Math.max(0, Math.min(4, current + direction));
-  if (indent === current) return false;
-  return editor.commands.updateAttributes(type, { indent });
-}
+import {
+  NoteSearch,
+  clearNoteSearch,
+  findNoteMatches,
+  setNoteSearch,
+  type NoteSearchMatch,
+} from "./noteSearch";
+import { NoteSearchWindow } from "./NoteSearchWindow";
+import { NoteToolbarWindow } from "./NoteToolbarWindow";
+import { changeIndent } from "./noteEditorUtils";
+import type { NoteAnchorRect } from "./noteFloatingWindow";
 
 function handleIndentShortcut(editor: Editor, direction: -1 | 1) {
   changeIndent(editor, direction);
@@ -125,20 +97,6 @@ const NoteLink = Link.extend({
   openOnClick: true,
   protocols: ["http", "https"],
 });
-
-function normalizeLinkUrl(value: string) {
-  const candidate = value.trim();
-  if (!candidate) return null;
-
-  try {
-    const url = new URL(
-      /^[a-z][a-z\d+.-]*:/i.test(candidate) ? candidate : `https://${candidate}`,
-    );
-    return url.protocol === "http:" || url.protocol === "https:" ? url : null;
-  } catch {
-    return null;
-  }
-}
 
 function countCharacters(text: string) {
   const Segmenter = (Intl as unknown as {
@@ -206,7 +164,6 @@ export function NoteRender({
   onChecklistChange,
   onInitialEditStarted,
   editingAllowed = true,
-  frameInset = 0,
   startInEditMode = false,
 }: {
   componentTheme: Partial<BoardItemStyle>;
@@ -215,7 +172,6 @@ export function NoteRender({
   onChecklistChange: (checklist: NonNullable<NoteItem["checklist"]>) => void;
   onInitialEditStarted?: () => void;
   editingAllowed?: boolean;
-  frameInset?: number;
   startInEditMode?: boolean;
 }) {
   const shouldStartEditing = editingAllowed && startInEditMode;
@@ -223,14 +179,15 @@ export function NoteRender({
   const [textCount, setTextCount] = useState({ characters: 0, words: 0 });
   const [taskProgress, setTaskProgress] = useState({ completed: 0, total: 0 });
   const [checklistOptionsOpened, setChecklistOptionsOpened] = useState(false);
-  const [linkEditorOpened, setLinkEditorOpened] = useState(false);
-  const [linkHref, setLinkHref] = useState("https://");
-  const [linkText, setLinkText] = useState("");
-  const [linkOpenInNewTab, setLinkOpenInNewTab] = useState(true);
-  const [linkCard, setLinkCard] = useState(false);
-  const [linkCanBeRemoved, setLinkCanBeRemoved] = useState(false);
-  const [linkError, setLinkError] = useState<string | null>(null);
-  const linkRangeRef = useRef({ from: 0, to: 0 });
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchAnchor, setSearchAnchor] = useState<NoteAnchorRect | null>(null);
+  const [toolbarAnchor, setToolbarAnchor] = useState<NoteAnchorRect | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [replaceQuery, setReplaceQuery] = useState("");
+  const [searchMode, setSearchMode] = useState<"find" | "replace">("find");
+  const [searchMatches, setSearchMatches] = useState<NoteSearchMatch[]>([]);
+  const [searchIndex, setSearchIndex] = useState(0);
+  const searchQueryInputRef = useRef<HTMLInputElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const saveTimerRef = useRef<number | null>(null);
   const pendingContentRef = useRef<JSONContent | null>(null);
@@ -245,6 +202,13 @@ export function NoteRender({
   useEffect(() => {
     checklistRef.current = item.checklist ?? {};
   }, [item.checklist]);
+
+  function captureAnchor(): NoteAnchorRect | null {
+    const rect = containerRef.current?.getBoundingClientRect();
+    return rect
+      ? { left: rect.left, top: rect.top, right: rect.right, bottom: rect.bottom }
+      : null;
+  }
 
   function updateTaskProgress(currentEditor: Editor) {
     let completed = 0;
@@ -268,8 +232,13 @@ export function NoteRender({
       TaskList,
       checklistBridge.extension,
       Indent,
+      NoteSearch,
       TextStyle,
       FontSize,
+      TextAlign.configure({
+        types: ["heading", "paragraph"],
+        alignments: ["left", "center", "right", "justify"],
+      }),
       CharacterCount.configure({
         textCounter: countCharacters,
         wordCounter: countWords,
@@ -316,6 +285,7 @@ export function NoteRender({
       });
       updateTaskProgress(currentEditor);
       if (shouldStartEditing) {
+        setToolbarAnchor(captureAnchor());
         window.setTimeout(() => currentEditor.commands.focus("end"), 0);
         onInitialEditStarted?.();
       }
@@ -359,8 +329,117 @@ export function NoteRender({
     pendingContentRef.current = null;
   }, [editor]);
 
+  function runSearch(query: string) {
+    if (!editor) return;
+    const matches = findNoteMatches(editor.state.doc, query);
+    const currentIndex = matches.length > 0 ? 0 : -1;
+    setSearchMatches(matches);
+    setSearchIndex(currentIndex);
+    setNoteSearch(editor, { query, matches, currentIndex });
+  }
+
+  function openSearch() {
+    if (!editor) return;
+    setSearchAnchor(captureAnchor());
+    setSearchOpen(true);
+    window.setTimeout(() => searchQueryInputRef.current?.focus(), 0);
+    if (searchQuery) {
+      runSearch(searchQuery);
+    }
+  }
+
+  function closeSearch() {
+    if (!editor) return;
+    setSearchOpen(false);
+    clearNoteSearch(editor);
+  }
+
+  function goToMatch(index: number) {
+    if (!editor || !searchQuery) return;
+    const matches = findNoteMatches(editor.state.doc, searchQuery);
+    if (matches.length === 0) {
+      setSearchMatches(matches);
+      setSearchIndex(-1);
+      setNoteSearch(editor, { query: searchQuery, matches, currentIndex: -1 });
+      return;
+    }
+    const clamped = ((index % matches.length) + matches.length) % matches.length;
+    setSearchMatches(matches);
+    setSearchIndex(clamped);
+    setNoteSearch(editor, { query: searchQuery, matches, currentIndex: clamped });
+    const match = matches[clamped];
+    const chain = editor.chain();
+    if (editing) chain.focus();
+    chain.setTextSelection({ from: match.from, to: match.to }).scrollIntoView().run();
+  }
+
+  function nextMatch() {
+    goToMatch(searchIndex + 1);
+  }
+
+  function prevMatch() {
+    goToMatch(searchIndex - 1);
+  }
+
+  function replaceCurrent() {
+    if (!editor || !searchQuery) return;
+    const matches = findNoteMatches(editor.state.doc, searchQuery);
+    if (matches.length === 0) return;
+    const index = Math.min(Math.max(searchIndex, 0), matches.length - 1);
+    const match = matches[index];
+    const { from, to } = match;
+    const tr = editor.state.tr;
+    if (replaceQuery) {
+      tr.replaceWith(from, to, editor.schema.text(replaceQuery, editor.state.doc.resolve(from).marks()));
+    } else {
+      tr.delete(from, to);
+    }
+    tr.setSelection(TextSelection.create(tr.doc, from + replaceQuery.length));
+    editor.view.dispatch(tr);
+
+    const nextMatches = findNoteMatches(editor.state.doc, searchQuery);
+    const currentIndex = nextMatches.length > 0 ? Math.min(index, nextMatches.length - 1) : -1;
+    setSearchMatches(nextMatches);
+    setSearchIndex(currentIndex);
+    setNoteSearch(editor, { query: searchQuery, matches: nextMatches, currentIndex });
+  }
+
+  function replaceAllMatches() {
+    if (!editor || !searchQuery) return;
+    const matches = findNoteMatches(editor.state.doc, searchQuery);
+    if (matches.length === 0) return;
+    if (
+      !window.confirm(
+        `¿Reemplazar ${matches.length} ${matches.length === 1 ? "coincidencia" : "coincidencias"}?`,
+      )
+    ) {
+      return;
+    }
+
+    let tr = editor.state.tr;
+    for (const match of [...matches].reverse()) {
+      if (replaceQuery) {
+        tr = tr.replaceWith(
+          match.from,
+          match.to,
+          editor.schema.text(replaceQuery, editor.state.doc.resolve(match.from).marks()),
+        );
+      } else {
+        tr = tr.delete(match.from, match.to);
+      }
+    }
+    editor.view.dispatch(tr);
+
+    const nextMatches = findNoteMatches(editor.state.doc, searchQuery);
+    const currentIndex = nextMatches.length > 0 ? 0 : -1;
+    setSearchMatches(nextMatches);
+    setSearchIndex(currentIndex);
+    setNoteSearch(editor, { query: searchQuery, matches: nextMatches, currentIndex });
+  }
+
   function startEditing() {
     if (!editor || !editingAllowed) return;
+    setToolbarAnchor(captureAnchor());
     setEditing(true);
     editor.setEditable(true);
     window.setTimeout(() => editor.commands.focus("end"), 0);
@@ -371,6 +450,7 @@ export function NoteRender({
     flush();
     editor.setEditable(false);
     setEditing(false);
+    setToolbarAnchor(null);
   }, [editor, flush]);
 
   useEffect(() => {
@@ -379,6 +459,8 @@ export function NoteRender({
     function handlePointerDown(event: PointerEvent) {
       const container = containerRef.current;
       if (!container || event.composedPath().includes(container)) return;
+      const target = event.target;
+      if (target instanceof Element && target.closest("[data-note-float-window]")) return;
       stopEditing();
     }
 
@@ -386,6 +468,7 @@ export function NoteRender({
       const container = containerRef.current;
       const target = event.target;
       if (!container || (target instanceof Node && container.contains(target))) return;
+      if (target instanceof Element && target.closest("[data-note-float-window]")) return;
       stopEditing();
     }
 
@@ -399,76 +482,6 @@ export function NoteRender({
       window.removeEventListener("blur", stopEditing);
     };
   }, [editing, stopEditing]);
-
-  function openLinkEditor() {
-    if (!editor) return;
-
-    if (editor.isActive("link")) {
-      editor.chain().focus().extendMarkRange("link").run();
-    }
-
-    const { from, to } = editor.state.selection;
-    const attributes = editor.getAttributes("link") as {
-      card?: boolean;
-      href?: string;
-      openInNewTab?: boolean;
-    };
-    linkRangeRef.current = { from, to };
-    setLinkText(editor.state.doc.textBetween(from, to, " "));
-    setLinkHref(attributes.href ?? "https://");
-    setLinkOpenInNewTab(attributes.openInNewTab ?? true);
-    setLinkCard(attributes.card ?? false);
-    setLinkCanBeRemoved(editor.isActive("link") && from !== to);
-    setLinkError(null);
-    setLinkEditorOpened(true);
-  }
-
-  function applyLink() {
-    if (!editor) return;
-    const url = normalizeLinkUrl(linkHref);
-    if (!url) {
-      setLinkError("Escribe una dirección HTTP o HTTPS válida.");
-      return;
-    }
-
-    const href = url.toString();
-    const text = linkText.trim() || href;
-    const { from, to } = linkRangeRef.current;
-    const attributes = {
-      card: linkCard,
-      domain: url.hostname,
-      href,
-      openInNewTab: linkOpenInNewTab,
-    };
-
-    if (from === to) {
-      editor.chain().focus().insertContent({
-        type: "text",
-        text,
-        marks: [{ type: "link", attrs: attributes }],
-      }).run();
-    } else {
-      editor.chain()
-        .focus()
-        .setTextSelection({ from, to })
-        .insertContent(text)
-        .setTextSelection({ from, to: from + text.length })
-        .setLink(attributes)
-        .setTextSelection(from + text.length)
-        .run();
-    }
-
-    setLinkEditorOpened(false);
-  }
-
-  function removeLink() {
-    if (!editor) return;
-    const { from, to } = linkRangeRef.current;
-    if (from !== to) {
-      editor.chain().focus().setTextSelection({ from, to }).unsetLink().run();
-    }
-    setLinkEditorOpened(false);
-  }
 
   function changeChecklistOptions(
     patch: Partial<NonNullable<NoteItem["checklist"]>>,
@@ -493,141 +506,57 @@ export function NoteRender({
         if (!target.closest("a,button,input,[role='combobox'],[data-note-footer]")) startEditing();
       }}
       onKeyDown={(event) => {
+        if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "f" && !event.shiftKey) {
+          event.preventDefault();
+          event.stopPropagation();
+          openSearch();
+          return;
+        }
         if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "s" && editing) {
           event.preventDefault();
           event.stopPropagation();
           flush();
           return;
         }
-        if (event.key === "Escape" && editing) {
-          event.preventDefault();
-          stopEditing();
+        if (event.key === "Escape") {
+          if (searchOpen) {
+            event.preventDefault();
+            closeSearch();
+            return;
+          }
+          if (editing) {
+            event.preventDefault();
+            stopEditing();
+          }
         }
       }}
       onPointerDown={editing ? (event) => event.stopPropagation() : undefined}
     >
-      {editing ? (
-        <Group
-          gap={4}
-          wrap="nowrap"
-          className="absolute bottom-[calc(100%+12px)] z-30 w-max max-w-[calc(100vw-24px)] rounded-md border border-[#d0d5dd] bg-white p-1 shadow-md"
-          data-note-actions
-          style={{ left: -frameInset }}
-        >
-          <Select
-            aria-label="Tamaño de texto"
-            comboboxProps={{ withinPortal: false }}
-            size="xs"
-            w={64}
-            defaultValue="16px"
-            data={fontSizes}
-            onChange={(value) => value && editor.chain().focus().setFontSize(value).run()}
-          />
-          {[
-            { label: "Negrita", active: "bold", icon: TextBIcon, action: () => editor.chain().focus().toggleBold().run() },
-            { label: "Cursiva", active: "italic", icon: TextItalicIcon, action: () => editor.chain().focus().toggleItalic().run() },
-            { label: "Subrayado", active: "underline", icon: TextUnderlineIcon, action: () => editor.chain().focus().toggleUnderline().run() },
-            { label: "Tachado", active: "strike", icon: TextStrikethroughIcon, action: () => editor.chain().focus().toggleStrike().run() },
-            { label: "Lista", active: "bulletList", icon: ListBulletsIcon, action: () => editor.chain().focus().toggleBulletList().run() },
-            { label: "Lista numerada", active: "orderedList", icon: ListNumbersIcon, action: () => editor.chain().focus().toggleOrderedList().run() },
-            { label: "Checklist", active: "taskList", icon: CheckSquareIcon, action: () => editor.chain().focus().toggleTaskList().run() },
-          ].map(({ action, active, icon: Icon, label }) => (
-            <Tooltip key={label} label={label}>
-              <ActionIcon aria-label={label} size="sm" variant={editor.isActive(active) ? "filled" : "default"} onClick={action}>
-                <Icon size={15} />
-              </ActionIcon>
-            </Tooltip>
-          ))}
-          <Tooltip label="Reducir sangría">
-            <ActionIcon
-              aria-label="Reducir sangría"
-              size="sm"
-              variant="default"
-              onClick={() => changeIndent(editor, -1)}
-            >
-              <ArrowLeftIcon size={15} />
-            </ActionIcon>
-          </Tooltip>
-          <Tooltip label="Aumentar sangría">
-            <ActionIcon
-              aria-label="Aumentar sangría"
-              size="sm"
-              variant="default"
-              onClick={() => changeIndent(editor, 1)}
-            >
-              <ArrowRightIcon size={15} />
-            </ActionIcon>
-          </Tooltip>
-          <Popover
-            opened={linkEditorOpened}
-            onChange={setLinkEditorOpened}
-            position="bottom"
-            shadow="md"
-            width={300}
-            withinPortal={false}
-          >
-            <Popover.Target>
-              <Tooltip label="Editar enlace">
-                <ActionIcon
-                  aria-label="Editar enlace"
-                  size="sm"
-                  variant={editor.isActive("link") ? "filled" : "default"}
-                  onClick={openLinkEditor}
-                >
-                  <LinkIcon size={15} />
-                </ActionIcon>
-              </Tooltip>
-            </Popover.Target>
-            <Popover.Dropdown data-note-actions>
-              <Stack gap="xs">
-                <TextInput
-                  label="Texto"
-                  value={linkText}
-                  onChange={(event) => setLinkText(event.currentTarget.value)}
-                />
-                <TextInput
-                  autoFocus
-                  error={linkError}
-                  label="Dirección"
-                  placeholder="https://ejemplo.com"
-                  value={linkHref}
-                  onChange={(event) => {
-                    setLinkHref(event.currentTarget.value);
-                    setLinkError(null);
-                  }}
-                  onKeyDown={(event) => {
-                    if (event.key === "Enter") {
-                      event.preventDefault();
-                      applyLink();
-                    }
-                  }}
-                />
-                <Switch
-                  checked={linkOpenInNewTab}
-                  label="Abrir en una pestaña nueva"
-                  onChange={(event) => setLinkOpenInNewTab(event.currentTarget.checked)}
-                />
-                <Switch
-                  checked={linkCard}
-                  label="Mostrar como tarjeta"
-                  onChange={(event) => setLinkCard(event.currentTarget.checked)}
-                />
-                <Group justify="space-between" gap="xs">
-                  <Button
-                    color="red"
-                    disabled={!linkCanBeRemoved}
-                    size="xs"
-                    variant="subtle"
-                    onClick={removeLink}
-                  >
-                    Quitar enlace
-                  </Button>
-                  <Button size="xs" onClick={applyLink}>Guardar</Button>
-                </Group>
-              </Stack>
-            </Popover.Dropdown>
-          </Popover>
-        </Group>
+      {editing && toolbarAnchor ? (
+        <NoteToolbarWindow editor={editor} anchorRect={toolbarAnchor} />
+      ) : null}
+
+      {searchOpen ? (
+        <NoteSearchWindow
+          anchorRect={searchAnchor}
+          inputRef={searchQueryInputRef}
+          searchQuery={searchQuery}
+          replaceQuery={replaceQuery}
+          searchMode={searchMode}
+          searchMatches={searchMatches}
+          searchIndex={searchIndex}
+          onQueryChange={(value) => {
+            setSearchQuery(value);
+            runSearch(value);
+          }}
+          onReplaceQueryChange={setReplaceQuery}
+          onToggleMode={() => setSearchMode((current) => (current === "find" ? "replace" : "find"))}
+          onPrev={prevMatch}
+          onNext={nextMatch}
+          onClose={closeSearch}
+          onReplace={replaceCurrent}
+          onReplaceAll={replaceAllMatches}
+        />
       ) : null}
 
       <EditorContent editor={editor} className="min-h-0 flex-1 overflow-y-auto pr-1" />
@@ -641,8 +570,9 @@ export function NoteRender({
             onChange={setChecklistOptionsOpened}
             position="top-start"
             shadow="md"
-            width={240}
+            width={205}
             withinPortal={false}
+            styles={{ dropdown: { padding: 8 } }}
           >
             <Popover.Target>
               <button
@@ -656,8 +586,9 @@ export function NoteRender({
               </button>
             </Popover.Target>
             <Popover.Dropdown data-note-actions>
-              <Stack gap="sm">
+              <Stack gap="xs">
                 <Switch
+                  size="xs"
                   checked={item.checklist?.hideCompleted ?? false}
                   label="Ocultar completadas"
                   onChange={(event) => changeChecklistOptions({
@@ -665,6 +596,7 @@ export function NoteRender({
                   })}
                 />
                 <Switch
+                  size="xs"
                   checked={item.checklist?.moveCompletedToEnd ?? false}
                   label="Mover completadas al final"
                   onChange={(event) => changeChecklistOptions({
@@ -680,6 +612,20 @@ export function NoteRender({
           {" · "}
           {textCount.words} {textCount.words === 1 ? "palabra" : "palabras"}
         </div>
+        <Tooltip label="Buscar en la nota">
+          <ActionIcon
+            aria-label="Buscar en la nota"
+            size="sm"
+            variant="subtle"
+            onClick={(event) => {
+              event.stopPropagation();
+              openSearch();
+            }}
+            onPointerDown={(event) => event.stopPropagation()}
+          >
+            <MagnifyingGlassIcon size={15} />
+          </ActionIcon>
+        </Tooltip>
         {editingAllowed ? (
           <Tooltip label={editing ? "Terminar edición" : "Editar nota"}>
             <ActionIcon

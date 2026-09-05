@@ -101,7 +101,6 @@ function ItemContent({
   onNoteContentChange,
   onNoteChecklistChange,
   onInitialNoteEditStarted,
-  noteFrameInset,
   startNoteInEditMode,
 }: {
   item: BoardItemData;
@@ -111,7 +110,6 @@ function ItemContent({
   onNoteContentChange: (itemId: string, content: JSONContent) => void;
   onNoteChecklistChange: (itemId: string, checklist: NonNullable<NoteItem["checklist"]>) => void;
   onInitialNoteEditStarted: () => void;
-  noteFrameInset: number;
   startNoteInEditMode: boolean;
 }) {
   if (item.type === "search") {
@@ -132,7 +130,6 @@ function ItemContent({
           item={item}
           componentTheme={componentTheme}
           editingAllowed={!isEditing}
-          frameInset={noteFrameInset}
           onContentChange={(content) => onNoteContentChange(item.id, content)}
           onChecklistChange={(checklist) => onNoteChecklistChange(item.id, checklist)}
           onInitialEditStarted={onInitialNoteEditStarted}
@@ -472,7 +469,6 @@ export function BoardItem({
           onNoteContentChange={onNoteContentChange}
           onNoteChecklistChange={onNoteChecklistChange}
           onInitialNoteEditStarted={onInitialNoteEditStarted}
-          noteFrameInset={visualStyle.padding + visualStyle.borderWidth}
           startNoteInEditMode={startNoteInEditMode}
         />
       </div>
