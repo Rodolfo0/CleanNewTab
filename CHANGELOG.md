@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.9.0](https://github.com/Rodolfo0/CleanNewTab/compare/clean-new-tab-v0.8.0...clean-new-tab-v0.9.0) (2026-09-05)
+
+
+### Features
+
+* **note:** add rich note element with Tiptap ([6076bce](https://github.com/Rodolfo0/CleanNewTab/commit/6076bced6d2374ee66a349034a94effc351bfacc))
+* **note:** add search and alignment controls ([0b401cc](https://github.com/Rodolfo0/CleanNewTab/commit/0b401ccde324375aca4217948eee3172d9a81bea))
+* **note:** expand editing tools and checklist controls ([2889d68](https://github.com/Rodolfo0/CleanNewTab/commit/2889d68af691a7bec173df82cbdd954ebe8601eb))
+* **note:** make counters configurable ([e64102a](https://github.com/Rodolfo0/CleanNewTab/commit/e64102a1cf2b4911eb084508c740f3abc121c1b7))
+
 ## [0.8.0](https://github.com/Rodolfo0/CleanNewTab/compare/clean-new-tab-v0.7.0...clean-new-tab-v0.8.0) (2026-08-24)
 
 
