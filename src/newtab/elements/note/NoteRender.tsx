@@ -492,6 +492,10 @@ export function NoteRender({
   }
 
   if (!editor) return null;
+  const counterVisibility = item.counter?.visibility ?? "editing";
+  const showCounter = counterVisibility === "always" || (
+    counterVisibility === "editing" && editing
+  );
 
   return (
     <div
@@ -608,9 +612,13 @@ export function NoteRender({
           </Popover>
         ) : null}
         <div className="min-w-0 flex-1 truncate text-[10px] opacity-60" aria-live="polite">
-          {textCount.characters} {textCount.characters === 1 ? "carácter" : "caracteres"}
-          {" · "}
-          {textCount.words} {textCount.words === 1 ? "palabra" : "palabras"}
+          {showCounter && item.counter?.showCharacters !== false ? (
+            <>{textCount.characters} {textCount.characters === 1 ? "carácter" : "caracteres"}</>
+          ) : null}
+          {showCounter && item.counter?.showCharacters !== false && item.counter?.showWords !== false ? " · " : null}
+          {showCounter && item.counter?.showWords !== false ? (
+            <>{textCount.words} {textCount.words === 1 ? "palabra" : "palabras"}</>
+          ) : null}
         </div>
         <Tooltip label="Buscar en la nota">
           <ActionIcon

@@ -1510,6 +1510,7 @@ export function NewTab() {
     patch: {
       anchorX?: BoardLayout["anchorX"];
       anchorY?: BoardLayout["anchorY"];
+      counter?: Partial<NonNullable<NoteItem["counter"]>>;
       display?: Partial<BoardItemDisplay>;
       height?: number;
       placeholder?: string;
@@ -1532,6 +1533,9 @@ export function NewTab() {
 
         const patchedItem = {
           ...item,
+          ...(item.type === "note" && patch.counter
+            ? { counter: { ...item.counter, ...patch.counter } }
+            : {}),
           display: patch.display ?? item.display,
           style: patch.style ?? item.style,
           title: patch.title ?? item.title,

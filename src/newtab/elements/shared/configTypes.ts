@@ -4,12 +4,14 @@ import type {
   BoardItemDisplay,
   BoardItemStyle,
   BoardVerticalAnchor,
+  NoteItem,
   SearchEngineId,
 } from "../../model/boardItems";
 
 export type ItemConfigPatch = {
   anchorX?: BoardHorizontalAnchor;
   anchorY?: BoardVerticalAnchor;
+  counter?: Partial<NonNullable<NoteItem["counter"]>>;
   display?: Partial<BoardItemDisplay>;
   height?: number;
   placeholder?: string;

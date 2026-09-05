@@ -130,6 +130,11 @@ export type NoteItem = BaseBoardItem & {
     hideCompleted?: boolean;
     moveCompletedToEnd?: boolean;
   };
+  counter?: {
+    showCharacters?: boolean;
+    showWords?: boolean;
+    visibility?: "always" | "editing" | "never";
+  };
 };
 
 export type BoardItem = LinkItem | GroupItem | TitleItem | DateItem | SearchItem | NoteItem;

@@ -204,6 +204,12 @@ function isValidItem(item: unknown): item is BoardItem {
         isRecord(item.checklist) &&
         (!('hideCompleted' in item.checklist) || typeof item.checklist.hideCompleted === 'boolean') &&
         (!('moveCompletedToEnd' in item.checklist) || typeof item.checklist.moveCompletedToEnd === 'boolean')
+      )) &&
+      (!('counter' in item) || item.counter === undefined || (
+        isRecord(item.counter) &&
+        (!('showCharacters' in item.counter) || typeof item.counter.showCharacters === 'boolean') &&
+        (!('showWords' in item.counter) || typeof item.counter.showWords === 'boolean') &&
+        (!('visibility' in item.counter) || ['always', 'editing', 'never'].includes(String(item.counter.visibility)))
       ))
   }
 
