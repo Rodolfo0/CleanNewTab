@@ -126,6 +126,15 @@ export type NoteItem = BaseBoardItem & {
   type: "note";
   content: JSONContent;
   contentVersion: 1;
+  checklist?: {
+    hideCompleted?: boolean;
+    moveCompletedToEnd?: boolean;
+  };
+  counter?: {
+    showCharacters?: boolean;
+    showWords?: boolean;
+    visibility?: "always" | "editing" | "never";
+  };
 };
 
 export type BoardItem = LinkItem | GroupItem | TitleItem | DateItem | SearchItem | NoteItem;

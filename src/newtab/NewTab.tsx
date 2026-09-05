@@ -33,6 +33,7 @@ import {
   type BoardItemDisplay,
   type BoardItemStyle,
   type BoardLayout,
+  type NoteItem,
   type SearchEngineId,
 } from "./model/boardItems";
 import { useWallpapers, type WallpaperExportData } from "./hooks/useSessionWallpaper";
@@ -1480,11 +1481,36 @@ export function NewTab() {
     }));
   }
 
+  function updateNoteChecklist(
+    itemId: string,
+    checklist: NonNullable<NoteItem["checklist"]>,
+  ) {
+    setWorkspace((currentWorkspace) => ({
+      ...currentWorkspace,
+      spaces: currentWorkspace.spaces.map((space) =>
+        space.id === currentWorkspace.activeSpaceId
+          ? {
+              ...space,
+              board: {
+                ...space.board,
+                items: space.board.items.map((item) =>
+                  item.id === itemId && item.type === "note"
+                    ? { ...item, checklist }
+                    : item,
+                ),
+              },
+            }
+          : space,
+      ),
+    }));
+  }
+
   function updateItemConfig(
     itemId: string,
     patch: {
       anchorX?: BoardLayout["anchorX"];
       anchorY?: BoardLayout["anchorY"];
+      counter?: Partial<NonNullable<NoteItem["counter"]>>;
       display?: Partial<BoardItemDisplay>;
       height?: number;
       placeholder?: string;
@@ -1507,6 +1533,9 @@ export function NewTab() {
 
         const patchedItem = {
           ...item,
+          ...(item.type === "note" && patch.counter
+            ? { counter: { ...item.counter, ...patch.counter } }
+            : {}),
           display: patch.display ?? item.display,
           style: patch.style ?? item.style,
           title: patch.title ?? item.title,
@@ -2124,6 +2153,7 @@ export function NewTab() {
                 setFloatingWindow("title-design");
               }}
               onNoteContentChange={updateNoteContent}
+              onNoteChecklistChange={updateNoteChecklist}
               onInitialNoteEditStarted={() => setNewNoteId(null)}
               startNoteInEditMode={!isEditing && newNoteId === item.id}
             />
