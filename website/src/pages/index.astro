@@ -1,5 +1,8 @@
 ---
 import BaseLayout from "../layouts/BaseLayout.astro";
+import { changelogReleases } from "../generated/changelog-releases";
+
+const latestRelease = changelogReleases[0];
 ---
 
 <BaseLayout
@@ -132,6 +135,47 @@ import BaseLayout from "../layouts/BaseLayout.astro";
       </article>
     </div>
   </section>
+
+  {latestRelease && (
+    <section class="section release-section" id="changelog">
+      <div class="release-section-intro">
+        <p class="eyebrow">Novedades recientes</p>
+        <h2>Lo que cambió en la última versión</h2>
+        <a class="text-link dark-link" href={`${import.meta.env.BASE_URL}changelog/`}>
+          Ver todo el changelog →
+        </a>
+      </div>
+      <article class="latest-release">
+        <div class="release-card-header">
+          <div>
+            <p class="release-version">Versión {latestRelease.version}</p>
+            {latestRelease.date && (
+              <time datetime={latestRelease.date}>
+                {new Intl.DateTimeFormat("es-MX", {
+                  day: "numeric",
+                  month: "long",
+                  year: "numeric",
+                }).format(new Date(`${latestRelease.date}T12:00:00`))}
+              </time>
+            )}
+          </div>
+          <a
+            class="release-link"
+            href={latestRelease.compareUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Ver en GitHub
+          </a>
+        </div>
+        {latestRelease.entries.length > 0 && (
+          <ul class="release-entry-list">
+            {latestRelease.entries.map((entry) => <li>{entry}</li>)}
+          </ul>
+        )}
+      </article>
+    </section>
+  )}
 
   <section id="privacy-first" class="privacy-callout">
     <div>

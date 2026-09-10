@@ -15,7 +15,8 @@ a { color: inherit; }
 .hero,
 .section,
 .privacy-callout,
-.legal-page {
+.legal-page,
+.changelog-page {
   width: min(1120px, calc(100% - 40px));
   margin-inline: auto;
 }
@@ -101,6 +102,21 @@ h2 { max-width: 850px; margin: 0; font-size: clamp(2.35rem, 5vw, 4.6rem); letter
 h3 { margin: 80px 0 12px; font-size: 1.35rem; }
 .feature-grid p, .final-cta > p:not(.eyebrow) { color: #696b65; line-height: 1.6; }
 
+.release-section { display: grid; grid-template-columns: .85fr 1.15fr; gap: 70px; align-items: start; }
+.release-section-intro { display: flex; flex-direction: column; align-items: flex-start; }
+.release-section h2 { font-size: clamp(2.2rem, 4vw, 3.7rem); }
+.text-link.dark-link { position: relative; color: #20211f; text-decoration: none; }
+.text-link.dark-link::after { content: ""; position: absolute; right: 0; bottom: -.25rem; left: 0; height: 1.5px; background: currentColor; transform: scaleX(0); transform-origin: left center; transition: transform .22s ease; }
+.text-link.dark-link:hover, .text-link.dark-link:focus-visible { color: #111; }
+.text-link.dark-link:hover::after, .text-link.dark-link:focus-visible::after { transform: scaleX(1); }
+.latest-release { padding: 32px; background: #fafaf6; border: 1px solid #d9d9d1; border-radius: 24px; }
+.release-card-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 24px; padding-bottom: 24px; border-bottom: 1px solid #d9d9d1; }
+.release-version { margin: 0; font-size: 1.55rem; font-weight: 760; letter-spacing: -.035em; }
+.release-card-header time { display: block; margin-top: 7px; color: #797b74; font-size: .9rem; }
+.release-link { color: #5f615c; font-size: .88rem; font-weight: 700; text-decoration: none; }
+.release-link:hover { color: #111; }
+.release-entry-list { display: grid; gap: 14px; margin: 24px 0 0; padding: 0 0 0 20px; color: #555750; line-height: 1.55; }
+
 .privacy-callout { display: grid; grid-template-columns: 1fr 1fr; gap: 70px; margin-block: 50px; padding: 70px; color: white; background: #20211f; border-radius: 32px; }
 .privacy-callout h2 { font-size: clamp(2.2rem, 4vw, 3.5rem); }
 .privacy-callout > div:last-child { align-self: end; }
@@ -118,6 +134,18 @@ h3 { margin: 80px 0 12px; font-size: 1.35rem; }
 .legal-page p, .legal-page li { color: #555750; font-size: 1.04rem; line-height: 1.75; }
 .legal-page code { padding: .15em .35em; background: #e6e6df; border-radius: 4px; }
 .legal-page a { font-weight: 650; }
+
+.changelog-page { max-width: 900px; padding-block: 90px 130px; }
+.changelog-header { padding-bottom: 48px; border-bottom: 1px solid #d9d9d1; }
+.changelog-page h1 { font-size: clamp(3rem, 7vw, 5.4rem); }
+.changelog-lead { max-width: 650px; margin: 28px 0 0; color: #5f615c; font-size: 1.15rem; line-height: 1.65; }
+.changelog-content { padding-top: 20px; }
+.changelog-content h2 { margin-top: 56px; font-size: 2.25rem; }
+.changelog-content h3 { margin: 30px 0 12px; font-size: 1.05rem; letter-spacing: .04em; text-transform: uppercase; }
+.changelog-content p, .changelog-content li { color: #555750; font-size: 1.02rem; line-height: 1.7; }
+.changelog-content ul { padding-left: 22px; }
+.changelog-content a { font-weight: 650; }
+.changelog-content hr { margin: 50px 0; border: 0; border-top: 1px solid #d9d9d1; }
 
 .uninstall-page { width: min(760px, calc(100% - 40px)); min-height: calc(100vh - 190px); display: flex; flex-direction: column; justify-content: center; margin-inline: auto; padding-block: 90px; }
 .uninstall-mark { width: 76px; height: 76px; margin-bottom: 34px; }
@@ -137,6 +165,7 @@ h3 { margin: 80px 0 12px; font-size: 1.35rem; }
   .hero { grid-template-columns: 1fr; min-height: auto; gap: 60px; padding-block: 70px; }
   .extension-preview { height: 440px; transform: none; }
   .feature-grid, .privacy-callout { grid-template-columns: 1fr; }
+  .release-section { grid-template-columns: 1fr; gap: 36px; }
   .feature-grid article { min-height: 210px; }
   h3 { margin-top: 50px; }
   .privacy-callout { gap: 35px; padding: 38px 26px; }
@@ -157,5 +186,5 @@ h3 { margin: 80px 0 12px; font-size: 1.35rem; }
 
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
-  .button { transition: none; }
+  .button, .text-link.dark-link::after { transition: none; }
 }

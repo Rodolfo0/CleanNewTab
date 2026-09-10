@@ -1,0 +1,29 @@
+---
+import BaseLayout from "./BaseLayout.astro";
+
+interface Props {
+  frontmatter: {
+    title?: string;
+    description?: string;
+  };
+}
+
+const { frontmatter } = Astro.props;
+const title = frontmatter?.title ?? "Novedades de Clean New Tab";
+const description =
+  frontmatter?.description ??
+  "Historial de cambios, mejoras y correcciones de Clean New Tab.";
+---
+
+<BaseLayout title={title} description={description}>
+  <article class="changelog-page">
+    <header class="changelog-header">
+      <p class="eyebrow">Actualizaciones</p>
+      <h1>{title}</h1>
+      <p class="changelog-lead">{description}</p>
+    </header>
+    <div class="changelog-content">
+      <slot />
+    </div>
+  </article>
+</BaseLayout>
