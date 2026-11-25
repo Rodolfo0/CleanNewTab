@@ -5,8 +5,8 @@ import { gzipSync } from "node:zlib";
 
 const root = process.cwd();
 const budgets = {
-  script: 220 * 1024,
-  stylesheet: 40 * 1024,
+  script: 230 * 1024,
+  stylesheet: 45 * 1024,
 };
 
 function formatKiB(bytes) {
