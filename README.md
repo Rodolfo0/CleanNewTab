@@ -11,14 +11,15 @@ publica automáticamente en Cloudflare Pages mediante
 ## Scripts
 
 ```bash
-npm run dev
-npm run lint
-npm run build
+pnpm install
+pnpm dev
+pnpm lint
+pnpm build
 ```
 
 ## Construir la extensión
 
-Ejecuta `npm run build`. Se generan dos paquetes:
+Ejecuta `pnpm build`. Se generan dos paquetes:
 
 - `dist/chrome`: Chrome, Edge y otros navegadores Chromium.
 - `dist/firefox`: Firefox.
@@ -26,7 +27,7 @@ Ejecuta `npm run build`. Se generan dos paquetes:
 Para preparar los archivos de entrega a Mozilla, ejecuta:
 
 ```bash
-npm run package:mozilla
+pnpm package:mozilla
 ```
 
 Esto genera en `artifacts/`:
@@ -37,8 +38,9 @@ Esto genera en `artifacts/`:
 
 Los nombres usan automáticamente la versión definida en `package.json`.
 
-El código fuente se reconstruye con Node.js 20 o posterior mediante `npm ci` y
-`npm run build`. No requiere variables de entorno ni pasos de generación
+El código fuente se reconstruye con Node.js 24 o posterior y pnpm (la versión
+indicada en `packageManager` de `package.json`) mediante
+`pnpm install --frozen-lockfile` y `pnpm build`. No requiere variables de entorno ni pasos de generación
 adicionales.
 
 ## Versionado y publicaciones

@@ -3,14 +3,6 @@ import browser from "webextension-polyfill";
 declare const __BROWSER__: "chrome" | "firefox";
 declare const __OAUTH_BROKER_URL__: string;
 
-const suggestionHosts = new Set([
-  "ac.ecosia.org",
-  "api.bing.com",
-  "duckduckgo.com",
-  "search.brave.com",
-  "suggestqueries.google.com",
-]);
-
 const extensionApi = browser;
 const uninstallUrl = "https://cleannewtab.com/uninstall/";
 const contextMenuRootId = "clean-new-tab-links";
@@ -676,28 +668,6 @@ async function handleDriveMessage(message: DriveMessage) {
   return undefined;
 }
 
-async function handleSearchSuggestions(message: DriveMessage) {
-  let suggestionUrl;
-  try {
-    suggestionUrl = new URL(message.url ?? "");
-  } catch {
-    throw new Error("URL de sugerencias invalida.");
-  }
-
-  if (
-    suggestionUrl.protocol !== "https:" ||
-    !suggestionHosts.has(suggestionUrl.hostname)
-  ) {
-    throw new Error("Proveedor de sugerencias no permitido.");
-  }
-
-  const response = await fetch(suggestionUrl.toString(), { credentials: "omit" });
-  if (!response.ok) {
-    throw new Error(`El proveedor respondio con ${response.status}.`);
-  }
-  return response.json();
-}
-
 extensionApi.runtime.onMessage.addListener((rawMessage: unknown) => {
   if (!isRecord(rawMessage) || typeof rawMessage.type !== "string") {
     return undefined;
@@ -705,9 +675,7 @@ extensionApi.runtime.onMessage.addListener((rawMessage: unknown) => {
   const message = rawMessage as DriveMessage;
   const task = message.type.startsWith("drive-")
     ? handleDriveMessage(message)
-    : message.type === "search-suggestions" && typeof message.url === "string"
-      ? handleSearchSuggestions(message)
-      : undefined;
+    : undefined;
 
   if (!task) {
     return undefined;

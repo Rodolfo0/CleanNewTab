@@ -13,6 +13,7 @@
   "permissions": [
     "contextMenus",
     "identity",
+    "search",
     "storage"
   ],
   "optional_permissions": [
@@ -21,13 +22,6 @@
   "host_permissions": [
     "https://accounts.google.com/*",
     "https://www.googleapis.com/*"
-  ],
-  "optional_host_permissions": [
-    "https://suggestqueries.google.com/*",
-    "https://api.bing.com/*",
-    "https://duckduckgo.com/*",
-    "https://search.brave.com/*",
-    "https://ac.ecosia.org/*"
   ],
   "background": {
     "scripts": [
@@ -44,9 +38,6 @@
       "data_collection_permissions": {
         "required": [
           "none"
-        ],
-        "optional": [
-          "searchTerms"
         ]
       }
     },

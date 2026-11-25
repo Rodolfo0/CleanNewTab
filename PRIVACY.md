@@ -1,6 +1,6 @@
 # Política de privacidad de Clean New Tab
 
-**Última actualización: 4 de agosto de 2026**
+**Última actualización: 25 de noviembre de 2026**
 
 Clean New Tab (“la Extensión”) reemplaza la página de nueva pestaña del
 navegador por un tablero personalizable. Esta política explica qué información
@@ -14,7 +14,7 @@ externos.
 - La configuración del tablero se guarda localmente y, sólo si el usuario lo
   solicita, puede sincronizarse con su propio Google Drive.
 - El acceso al historial de navegación es opcional.
-- Las sugerencias remotas de búsqueda son opcionales y requieren autorización.
+- Las búsquedas usan el buscador predeterminado configurado en el navegador.
 - Los dominios de los accesos directos pueden enviarse a `geticon.dev` para
   obtener sus iconos.
 
@@ -60,27 +60,15 @@ para publicidad, elaboración de perfiles o seguimiento.
 ### Búsquedas y sugerencias
 
 La Extensión conserva localmente un historial limitado de términos buscados
-para ofrecer sugerencias locales. El usuario puede borrar estos datos
-eliminando los datos de la Extensión o desinstalándola.
+para ofrecer sugerencias locales. Estas sugerencias no salen del dispositivo. El
+usuario puede borrar estos datos eliminando los datos de la Extensión o
+desinstalándola.
 
-Cuando el usuario habilita las sugerencias remotas y concede el permiso
-correspondiente, el texto que escribe puede enviarse mediante HTTPS al proveedor
-de búsqueda seleccionado para obtener sugerencias. Los posibles proveedores
-son:
-
-- Google: `suggestqueries.google.com`
-- Microsoft Bing: `api.bing.com`
-- DuckDuckGo: `duckduckgo.com`
-- Brave Search: `search.brave.com`
-- Ecosia: `ac.ecosia.org`
-
-La Extensión no envía estos términos a servidores operados por el desarrollador.
-Cada proveedor externo trata la información conforme a su propia política de
-privacidad.
-
-Al realizar una búsqueda, el navegador abre el proveedor elegido con el término
-introducido. Esta acción funciona del mismo modo que visitar y utilizar
-directamente ese buscador.
+Al realizar una búsqueda, la Extensión entrega el término al navegador mediante
+su API de búsqueda, y el navegador lo envía al buscador predeterminado que el
+usuario haya configurado. La Extensión no elige ni cambia ese buscador, y no
+envía los términos a servidores operados por el desarrollador. El buscador
+trata la información conforme a su propia política de privacidad.
 
 ### Iconos de sitios web
 
@@ -121,7 +109,7 @@ las funciones visibles de la nueva pestaña. El desarrollador:
 - No transfiere datos con fines crediticios, publicitarios o comerciales.
 
 La transmisión a proveedores externos se limita a las funciones descritas:
-sincronización opcional con Google Drive, sugerencias de búsqueda e iconos de
+sincronización opcional con Google Drive, búsquedas e iconos de
 sitios web. Cloudflare proporciona la infraestructura del servicio OAuth usado
 por la Extensión y puede procesar los datos técnicos necesarios para atender esas
 solicitudes conforme a su propia política de privacidad.

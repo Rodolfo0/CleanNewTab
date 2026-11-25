@@ -1,46 +1,7 @@
-import { useEffect, useMemo, useState } from "react";
-import { getSearchEngine, type SearchEngineId } from "../model/searchEngines";
+import { useMemo } from "react";
 
 const SEARCH_HISTORY_KEY = "clean-new-tab:search-history:v1";
 const MAX_SUGGESTIONS = 8;
-
-type BrowserRuntime = {
-  lastError?: { message?: string };
-  sendMessage: (
-    message: unknown,
-    callback?: (response: unknown) => void,
-  ) => Promise<unknown> | void;
-};
-
-function requestRemoteSuggestions(url: string) {
-  const extensionApi = (
-    globalThis as typeof globalThis & {
-      browser?: { runtime?: BrowserRuntime };
-      chrome?: { runtime?: BrowserRuntime };
-    }
-  );
-  const browserRuntime = extensionApi.browser?.runtime;
-  const runtime = browserRuntime ?? extensionApi.chrome?.runtime;
-
-  if (!runtime?.sendMessage) {
-    return Promise.reject(new Error("Runtime de extension no disponible."));
-  }
-
-  const message = { type: "search-suggestions", url };
-  if (browserRuntime) {
-    return Promise.resolve(browserRuntime.sendMessage(message));
-  }
-
-  return new Promise<unknown>((resolve, reject) => {
-    runtime.sendMessage(message, (response) => {
-      if (runtime.lastError) {
-        reject(new Error(runtime.lastError.message));
-      } else {
-        resolve(response);
-      }
-    });
-  });
-}
 
 function readSearchHistory() {
   try {
@@ -82,81 +43,21 @@ export function rememberSearchQuery(query: string) {
 
 export function useSearchSuggestions({
   enabled,
-  engineId,
   query,
-  remoteEnabled,
 }: {
   enabled: boolean;
-  engineId: SearchEngineId;
   query: string;
-  remoteEnabled: boolean;
 }) {
-  const suggestionKey = `${engineId}:${query.trim().toLocaleLowerCase()}`;
-  const [remoteResult, setRemoteResult] = useState<{
-    key: string;
-    suggestions: string[];
-  }>({ key: "", suggestions: [] });
-  const localSuggestions = useMemo(() => {
+  return useMemo(() => {
     const normalizedQuery = query.trim().toLocaleLowerCase();
     if (!enabled || !normalizedQuery) {
       return [];
     }
 
-    return readSearchHistory().filter((value) =>
-      value.toLocaleLowerCase().includes(normalizedQuery),
-    );
+    return uniqueSuggestions(
+      readSearchHistory().filter((value) =>
+        value.toLocaleLowerCase().includes(normalizedQuery),
+      ),
+    ).slice(0, MAX_SUGGESTIONS);
   }, [enabled, query]);
-
-  useEffect(() => {
-    const normalizedQuery = query.trim();
-    const engine = getSearchEngine(engineId);
-
-    if (
-      !enabled ||
-      !remoteEnabled ||
-      normalizedQuery.length < 2 ||
-      !engine.suggestionUrl ||
-      !engine.parseSuggestions
-    ) {
-      return;
-    }
-
-    const controller = new AbortController();
-    const timeoutId = window.setTimeout(() => {
-      const suggestionUrl = engine.suggestionUrl?.(normalizedQuery);
-      if (!suggestionUrl) {
-        return;
-      }
-
-      void requestRemoteSuggestions(suggestionUrl)
-        .then((value) => {
-          if (!controller.signal.aborted && value !== undefined) {
-            setRemoteResult({
-              key: suggestionKey,
-              suggestions: engine.parseSuggestions?.(value) ?? [],
-            });
-          }
-        })
-        .catch(() => {
-          if (!controller.signal.aborted) {
-            setRemoteResult({ key: suggestionKey, suggestions: [] });
-          }
-        });
-    }, 180);
-
-    return () => {
-      window.clearTimeout(timeoutId);
-      controller.abort();
-    };
-  }, [enabled, engineId, query, remoteEnabled, suggestionKey]);
-
-  const remoteSuggestions =
-    enabled && remoteEnabled && remoteResult.key === suggestionKey
-      ? remoteResult.suggestions
-      : [];
-
-  return uniqueSuggestions([...localSuggestions, ...remoteSuggestions]).slice(
-    0,
-    MAX_SUGGESTIONS,
-  );
 }

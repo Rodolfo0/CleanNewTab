@@ -6,14 +6,13 @@ import {
   getItemStyle,
   type BoardItemStyle,
   type SearchItem,
-  getSearchEngine,
 } from "../../model/boardItems";
 import {
   rememberSearchQuery,
   useSearchSuggestions,
 } from "../../hooks/useSearchSuggestions";
 import { getTextAlign } from "../shared/renderHelpers";
-import { requestSearchSuggestionPermission } from "../../icons/searchSuggestionPermissions";
+import { searchWithDefaultEngine } from "./browserSearch";
 
 export function SearchRender({
   componentTheme,
@@ -27,30 +26,12 @@ export function SearchRender({
   const display = getItemDisplay(item);
   const style = { ...getItemStyle(item, componentTheme), fontSize: getItemFontSize(item, componentTheme) };
   const controlHeight = Math.round(style.fontSize * 2.25);
-  const engineId = item.searchEngine ?? "google";
-  const engine = getSearchEngine(engineId);
   const suggestionsEnabled = item.suggestionsEnabled !== false;
   const [query, setQuery] = useState("");
-  const [permittedEngineId, setPermittedEngineId] = useState<string>();
-  const remoteSuggestionsEnabled = permittedEngineId === engineId;
   const suggestions = useSearchSuggestions({
     enabled: suggestionsEnabled && !isEditing,
-    engineId,
     query,
-    remoteEnabled: remoteSuggestionsEnabled,
   });
-
-  function enableRemoteSuggestions() {
-    if (!suggestionsEnabled || isEditing || remoteSuggestionsEnabled) {
-      return;
-    }
-
-    void requestSearchSuggestionPermission(engineId).then((granted) => {
-      if (granted) {
-        setPermittedEngineId(engineId);
-      }
-    });
-  }
 
   function runSearch(value: string) {
     const searchQuery = value.trim();
@@ -60,7 +41,9 @@ export function SearchRender({
     }
 
     rememberSearchQuery(searchQuery);
-    window.location.href = engine.searchUrl(searchQuery);
+    void searchWithDefaultEngine(searchQuery).catch((error: unknown) => {
+      console.error("No se pudo realizar la búsqueda.", error);
+    });
   }
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -101,7 +84,6 @@ export function SearchRender({
           value={query}
           onChange={setQuery}
           onOptionSubmit={runSearch}
-          onFocus={enableRemoteSuggestions}
           openOnFocus={suggestions.length > 0}
           limit={8}
           styles={{

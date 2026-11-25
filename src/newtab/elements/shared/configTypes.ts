@@ -5,7 +5,6 @@ import type {
   BoardItemStyle,
   BoardVerticalAnchor,
   NoteItem,
-  SearchEngineId,
 } from "../../model/boardItems";
 
 export type ItemConfigPatch = {
@@ -15,7 +14,6 @@ export type ItemConfigPatch = {
   display?: Partial<BoardItemDisplay>;
   height?: number;
   placeholder?: string;
-  searchEngine?: SearchEngineId;
   suggestionsEnabled?: boolean;
   positionX?: number;
   positionY?: number;

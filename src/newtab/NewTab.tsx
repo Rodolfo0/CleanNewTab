@@ -34,7 +34,6 @@ import {
   type BoardItemStyle,
   type BoardLayout,
   type NoteItem,
-  type SearchEngineId,
 } from "./model/boardItems";
 import { useWallpapers, type WallpaperExportData } from "./hooks/useSessionWallpaper";
 import { useToday } from "./hooks/useToday";
@@ -1514,7 +1513,6 @@ export function NewTab() {
       display?: Partial<BoardItemDisplay>;
       height?: number;
       placeholder?: string;
-      searchEngine?: SearchEngineId;
       suggestionsEnabled?: boolean;
       positionX?: number;
       positionY?: number;
@@ -1607,10 +1605,6 @@ export function NewTab() {
               patch.placeholder !== undefined
                 ? patch.placeholder
                 : item.placeholder,
-            searchEngine:
-              patch.searchEngine !== undefined
-                ? patch.searchEngine
-                : item.searchEngine,
             suggestionsEnabled:
               patch.suggestionsEnabled !== undefined
                 ? patch.suggestionsEnabled

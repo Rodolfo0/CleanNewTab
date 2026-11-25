@@ -328,7 +328,11 @@ Propiedades relevantes:
 
 Tipo: `search`
 
-Permite buscar en la web. Actualmente usa Google con el query ingresado.
+Permite buscar en la web con el buscador predeterminado del navegador, mediante
+la API `search` (`chrome.search.query`). No se puede elegir otro motor desde la
+extensión: la política de finalidad única de Chrome Web Store exige respetar la
+configuración del usuario. Las sugerencias salen sólo del historial local de
+búsquedas.
 
 ### Variantes
 

@@ -1,5 +1,4 @@
 import { cp, mkdir, readFile, writeFile } from "node:fs/promises";
-import { execFileSync } from "node:child_process";
 import { fileURLToPath, URL } from "node:url";
 import { build as viteBuild } from "vite";
 import path from "node:path";
@@ -12,11 +11,11 @@ const defaultOAuthBrokerUrl =
 for (const browser of ["chrome", "firefox"]) {
   const outDir = path.join(root, "dist", browser);
 
-  execFileSync(
-    process.platform === "win32" ? "npx.cmd" : "npx",
-    ["vite", "build", "--outDir", outDir],
-    { cwd: root, stdio: "inherit" },
-  );
+  await viteBuild({
+    root,
+    configFile: path.join(root, "vite.config.js"),
+    build: { outDir },
+  });
 
   await mkdir(outDir, { recursive: true });
   await cp(
