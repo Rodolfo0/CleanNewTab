@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.9.1](https://github.com/Rodolfo0/CleanNewTab/compare/clean-new-tab-v0.9.0...clean-new-tab-v0.9.1) (2026-11-25)
+
+
+### Bug Fixes
+
+* **search:** use the browser's default search engine ([deac7bd](https://github.com/Rodolfo0/CleanNewTab/commit/deac7bdb8ec44e71394c8db2e603bfa3cfb4ec0b))
+
 ## [0.9.0](https://github.com/Rodolfo0/CleanNewTab/compare/clean-new-tab-v0.8.0...clean-new-tab-v0.9.0) (2026-09-05)
 
 
