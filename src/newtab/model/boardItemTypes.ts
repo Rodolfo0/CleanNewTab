@@ -1,4 +1,3 @@
-import type { SearchEngineId } from "./searchEngines";
 import type { JSONContent } from "@tiptap/core";
 
 export const CANVAS_HEIGHT = 720;
@@ -119,7 +118,6 @@ export type DateItem = BaseBoardItem & { type: "date" };
 export type SearchItem = BaseBoardItem & {
   type: "search";
   placeholder: string;
-  searchEngine?: SearchEngineId;
   suggestionsEnabled?: boolean;
 };
 export type NoteItem = BaseBoardItem & {
@@ -151,7 +149,6 @@ export type CreateBoardItemValues = {
   anchorX?: BoardHorizontalAnchor;
   anchorY?: BoardVerticalAnchor;
   placeholder?: string;
-  searchEngine?: SearchEngineId;
   suggestionsEnabled?: boolean;
   style?: Partial<BoardItemStyle>;
   display?: Partial<BoardItemDisplay>;

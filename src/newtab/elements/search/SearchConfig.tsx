@@ -1,15 +1,11 @@
-import { Select, Stack, Switch, TextInput } from "@mantine/core";
+import { Stack, Switch, TextInput } from "@mantine/core";
 import {
   AlignmentConfig,
   ConfigAccordion,
   VariantConfig,
 } from "../shared/configSections";
 import type { ElementConfigProps } from "../shared/configTypes";
-import {
-  isSearchEngineId,
-  searchEngineOptions,
-  type SearchItem,
-} from "../../model/boardItems";
+import type { SearchItem } from "../../model/boardItems";
 
 export function SearchConfig({
   item,
@@ -36,19 +32,6 @@ export function SearchConfig({
       />
 
       <ConfigAccordion title="Comportamiento" value="behavior">
-        <Select
-          label="Motor de búsqueda"
-          size="xs"
-          allowDeselect={false}
-          data={searchEngineOptions}
-          value={item.searchEngine ?? "google"}
-          comboboxProps={{ withinPortal: true, zIndex: 500 }}
-          onChange={(value) => {
-            if (isSearchEngineId(value)) {
-              onChange(item.id, { searchEngine: value });
-            }
-          }}
-        />
         <Switch
           size="xs"
           label="Mostrar sugerencias"

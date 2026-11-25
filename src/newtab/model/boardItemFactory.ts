@@ -13,7 +13,6 @@ import type {
   TitleItem,
 } from "./boardItemTypes";
 import { defaultTitleStyle } from "./boardItemPresentation";
-import type { SearchEngineId } from "./searchEngines";
 import { parseNavigableUrl } from "./navigableUrl";
 
 const DEFAULT_ITEM_WIDTH = 280;
@@ -171,7 +170,6 @@ function createSearchElement(
   placeholder?: string,
   display?: Partial<BoardItemDisplay>,
   style?: Partial<BoardItemStyle>,
-  searchEngine?: SearchEngineId,
   suggestionsEnabled?: boolean,
 ): SearchItem {
   return {
@@ -179,7 +177,6 @@ function createSearchElement(
     type: "search",
     title: title.trim(),
     placeholder: placeholder?.trim() || "Buscar en la web",
-    searchEngine: searchEngine ?? "google",
     suggestionsEnabled: suggestionsEnabled ?? true,
     layout,
     display,
@@ -196,7 +193,6 @@ export function createBoardItem({
   layout,
   style,
   display,
-  searchEngine,
   suggestionsEnabled,
 }: CreateBoardItemValues & { layout: BoardLayout }): BoardItem {
   if (type === "group") return createGroup(title, layout, display, style);
@@ -209,7 +205,6 @@ export function createBoardItem({
       placeholder,
       display,
       style,
-      searchEngine,
       suggestionsEnabled,
     );
   }

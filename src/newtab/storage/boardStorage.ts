@@ -1,4 +1,4 @@
-import { clampItemLayout, isSearchEngineId, parseNavigableUrl } from '../model/boardItems'
+import { clampItemLayout, parseNavigableUrl } from '../model/boardItems'
 import type { Board, BoardItem } from '../model/boardItems'
 import { isComponentThemeId, type ComponentThemeId } from '../themes/componentThemes'
 
@@ -36,7 +36,6 @@ export const defaultBoard: Board = {
       type: 'search',
       title: 'Buscar',
       placeholder: 'Buscar en la web',
-      searchEngine: 'google',
       suggestionsEnabled: true,
       layout: {
         x: 0,
@@ -244,15 +243,20 @@ function normalizeBoard(board: Board): Board {
         }
       }
 
-      return item.type === 'search'
-        ? {
-            ...normalizedItem,
-            searchEngine: isSearchEngineId(item.searchEngine)
-              ? item.searchEngine
-              : 'google',
-            suggestionsEnabled: item.suggestionsEnabled !== false,
-          }
-        : normalizedItem
+      if (item.type === 'search') {
+        // Older boards stored a fixed search engine; searches now
+        // always use the browser's default engine, so drop the legacy field.
+        const searchItem = { ...normalizedItem } as typeof normalizedItem & {
+          searchEngine?: unknown
+        }
+        delete searchItem.searchEngine
+        return {
+          ...searchItem,
+          suggestionsEnabled: item.suggestionsEnabled !== false,
+        }
+      }
+
+      return normalizedItem
     }),
   }
 }
